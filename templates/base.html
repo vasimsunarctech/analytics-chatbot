@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TAS Chat{% endblock %}</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="flex min-h-screen flex-col bg-gray-100 {% block body_class %}{% endblock %}">
+    <nav class="bg-white border-b border-gray-200">
+        <div class="relative mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4">
+            <a href="{{ url_for('chat') if logged_in else url_for('login') }}" class="text-lg font-semibold text-gray-800">TAS Chat</a>
+
+            {% if logged_in %}
+                <div class="flex items-center gap-4">
+                    <div class="hidden items-center gap-2 md:flex">
+                        <button type="button" data-open-new-session class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">New Session</button>
+                        <a href="{{ url_for('chat_history') }}" class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Chat History</a>
+                    </div>
+
+                    <div class="relative md:hidden">
+                        <button id="mobile-menu-button" type="button" class="rounded-md border border-gray-200 p-2 text-gray-600 hover:bg-gray-100" aria-expanded="false">
+                            <span class="sr-only">Toggle navigation</span>
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h16.5M3.75 12h16.5m-16.5 6.75h16.5" />
+                            </svg>
+                        </button>
+                        <div id="mobile-menu" class="absolute right-0 mt-2 hidden w-44 rounded-md border border-gray-200 bg-white py-2 shadow-lg">
+                            <button type="button" data-open-new-session class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">New Session</button>
+                            <a href="{{ url_for('chat_history') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Chat History</a>
+                        </div>
+                    </div>
+
+                    <div class="relative">
+                        {% set display_name = (full_name or username or 'User') %}
+                        <button id="user-menu-button" type="button" class="flex items-center gap-2 rounded-full border border-transparent bg-gray-100 px-2 py-1 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none" aria-expanded="false">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">{{ display_name[0]|upper }}</span>
+                            <span class="hidden sm:inline">{{ display_name }}</span>
+                            <svg class="h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.086l3.71-3.856a.75.75 0 111.08 1.04l-4.24 4.4a.75.75 0 01-1.08 0l-4.24-4.4a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div id="user-menu" class="absolute right-0 mt-2 hidden w-48 rounded-md border border-gray-200 bg-white py-2 shadow-lg">
+                            <a href="{{ url_for('profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                            <a href="{{ url_for('logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% if logged_in %}
+        <div id="new-session-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center px-4 py-6">
+            <div class="absolute inset-0 bg-black/40" data-close-new-session></div>
+            <div class="relative z-10 w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-800">Start a new chat session</h2>
+                    <button type="button" class="rounded-full p-1 text-gray-500 hover:bg-gray-100" data-close-new-session aria-label="Close">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <p class="mt-2 text-sm text-gray-600">Give your session a name or leave it blank to use the default timestamp.</p>
+                <form method="post" action="{{ url_for('new_session') }}" class="mt-4 space-y-4">
+                    <div>
+                        <label for="new-session-name" class="mb-1 block text-sm font-medium text-gray-700">Session name</label>
+                        <input id="new-session-name" name="session_name" type="text" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Project brainstorm">
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button type="button" class="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100" data-close-new-session>Cancel</button>
+                        <button type="submit" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Create</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        <div id="toast-container" class="pointer-events-none fixed bottom-4 right-4 z-50 space-y-3">
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="pointer-events-auto flex min-w-[260px] max-w-sm items-start gap-3 rounded-lg border px-4 py-3 shadow-lg transition" data-toast data-toast-category="{{ category }}">
+                        <div class="mt-0.5 h-2 w-2 flex-shrink-0 rounded-full" data-toast-indicator></div>
+                        <div class="flex-1 text-sm">{{ message }}</div>
+                        <button type="button" class="text-gray-400 transition hover:text-gray-600" data-dismiss-toast aria-label="Dismiss">
+                            <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    {% endwith %}
+
+    <main class="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 {% block main_class %}{% endblock %}">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const modal = document.getElementById('new-session-modal');
+            const modalInput = document.getElementById('new-session-name');
+            const openModalButtons = document.querySelectorAll('[data-open-new-session]');
+            const closeModalButtons = document.querySelectorAll('[data-close-new-session]');
+            const userMenuButton = document.getElementById('user-menu-button');
+            const userMenu = document.getElementById('user-menu');
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+                const showModal = () => {
+                    if (!modal) return;
+                    modal.classList.remove('hidden');
+                    if (modalInput) {
+                        setTimeout(() => modalInput.focus(), 50);
+                    }
+                };
+
+                const hideModal = () => {
+                    if (!modal) return;
+                    modal.classList.add('hidden');
+                    if (modalInput) {
+                        modalInput.value = '';
+                    }
+                };
+
+                openModalButtons.forEach((button) => {
+                    button.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        showModal();
+                    });
+                });
+
+                closeModalButtons.forEach((button) => {
+                    button.addEventListener('click', function () {
+                        hideModal();
+                    });
+                });
+
+                if (modal) {
+                    modal.addEventListener('click', function (event) {
+                        if (event.target === modal) {
+                            hideModal();
+                        }
+                    });
+                    document.addEventListener('keydown', function (event) {
+                        if (event.key === 'Escape') {
+                            hideModal();
+                        }
+                    });
+                }
+
+                if (userMenuButton && userMenu) {
+                    userMenuButton.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        userMenu.classList.toggle('hidden');
+                        if (mobileMenu) mobileMenu.classList.add('hidden');
+                    });
+                }
+
+                if (mobileMenuButton && mobileMenu) {
+                    mobileMenuButton.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        mobileMenu.classList.toggle('hidden');
+                        if (userMenu) userMenu.classList.add('hidden');
+                    });
+                }
+
+            document.addEventListener('click', function (event) {
+                if (userMenu && !userMenu.contains(event.target) && !(userMenuButton && userMenuButton.contains(event.target))) {
+                    userMenu.classList.add('hidden');
+                }
+                if (mobileMenu && !mobileMenu.contains(event.target) && !(mobileMenuButton && mobileMenuButton.contains(event.target))) {
+                    mobileMenu.classList.add('hidden');
+                }
+            });
+
+            const toastColors = {
+                success: {
+                    toast: 'border-green-200 bg-green-50 text-green-800',
+                    indicator: 'bg-green-500'
+                },
+                error: {
+                    toast: 'border-red-200 bg-red-50 text-red-800',
+                    indicator: 'bg-red-500'
+                },
+                info: {
+                    toast: 'border-blue-200 bg-blue-50 text-blue-800',
+                    indicator: 'bg-blue-500'
+                },
+                warning: {
+                    toast: 'border-yellow-200 bg-yellow-50 text-yellow-800',
+                    indicator: 'bg-yellow-500'
+                }
+            };
+
+            document.querySelectorAll('[data-toast]').forEach((toast) => {
+                const category = toast.getAttribute('data-toast-category');
+                const palette = toastColors[category] || {
+                    toast: 'border-gray-200 bg-white text-gray-800',
+                    indicator: 'bg-gray-400'
+                };
+                const indicator = toast.querySelector('[data-toast-indicator]');
+                const dismiss = toast.querySelector('[data-dismiss-toast]');
+
+                toast.className += ' ' + palette.toast;
+                if (indicator) indicator.className += ' ' + palette.indicator;
+
+                const removeToast = () => {
+                    toast.classList.add('opacity-0', 'translate-y-2');
+                    setTimeout(() => toast.remove(), 200);
+                };
+
+                setTimeout(removeToast, 5000);
+                if (dismiss) {
+                    dismiss.addEventListener('click', removeToast);
+                }
+            });
+        });
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
