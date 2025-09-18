@@ -5,7 +5,11 @@
 {% block main_class %}pt-6 pb-0{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div
+    x-data="chatComponent({{ messages_data|tojson }}, {{ selected_session.id }})"
+    x-init="init()"
+    class="space-y-6"
+>
     <section class="flex flex-col rounded-lg bg-white shadow min-h-[calc(100vh-6rem)]">
         <header class="border-b border-gray-200 px-6 py-4">
             <div class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
@@ -16,30 +20,41 @@
                 <button type="button" data-open-new-session class="hidden rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 md:inline-flex">New Session</button>
             </div>
         </header>
-        <div id="chat-scroll-container" class="flex-1 px-6 py-6">
-            <div class="space-y-4">
-                {% for message in messages %}
-                    <div class="flex {% if message.sender == 'user' %}justify-end{% else %}justify-start{% endif %}">
-                        <div class="max-w-xl rounded-2xl px-4 py-3 text-sm shadow-sm
-                            {% if message.sender == 'user' %}
-                                bg-blue-600 text-white
-                            {% else %}
-                                bg-gray-100 text-gray-800
-                            {% endif %}">
-                            <p class="whitespace-pre-wrap">{{ message.message_text }}</p>
-                            <span class="mt-2 block text-xs opacity-70">{{ message.timestamp }}</span>
-                        </div>
+        <div x-ref="chatContainer" class="flex-1 overflow-y-auto px-6 py-6">
+            <template x-if="messages.length === 0">
+                <p class="text-sm text-gray-500">No messages yet. Say hello!</p>
+            </template>
+            <template x-for="msg in messages" :key="msg.id">
+                <div class="flex" :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'">
+                    <div class="max-w-xl rounded-2xl px-4 py-3 text-sm shadow-sm" :class="msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'">
+                        <p class="whitespace-pre-wrap" x-text="msg.message_text"></p>
+                        <span class="mt-2 block text-xs opacity-70" x-text="msg.formatted_timestamp"></span>
                     </div>
-                {% else %}
-                    <p class="text-sm text-gray-500">No messages yet. Say hello!</p>
-                {% endfor %}
-            </div>
+                </div>
+            </template>
         </div>
         <footer class="border-t border-gray-200 px-6 py-4">
-            <form id="chat-form" method="post" action="{{ url_for('send_message') }}" class="flex flex-col gap-3 md:flex-row">
-                <input type="hidden" name="session_id" value="{{ selected_session.id }}">
-                <textarea id="chat-input" name="message" rows="2" placeholder="Ask something..." required autofocus class="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
-                <button type="submit" class="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700">Send</button>
+            <form @submit.prevent="send" action="{{ url_for('send_message') }}" method="post" class="flex flex-col gap-3 md:flex-row">
+                <input type="hidden" name="session_id" value="{{ selected_session.id }}" :value="sessionId">
+                <textarea
+                    name="message"
+                    x-model="messageText"
+                    x-ref="chatInput"
+                    rows="2"
+                    placeholder="Ask something..."
+                    required
+                    class="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    @keydown.enter="if (!$event.shiftKey) { $event.preventDefault(); send(); }"
+                ></textarea>
+                <button
+                    type="submit"
+                    class="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    :class="isSending ? 'cursor-not-allowed opacity-70' : ''"
+                    :disabled="isSending"
+                >
+                    <span x-show="!isSending" x-cloak>Send</span>
+                    <span x-show="isSending" x-cloak>Sending...</span>
+                </button>
             </form>
         </footer>
     </section>
@@ -48,25 +63,66 @@
 
 {% block extra_scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const chatContainer = document.getElementById('chat-scroll-container');
-        if (chatContainer) {
-            window.scrollTo(0, document.body.scrollHeight);
-        }
-
-        const chatForm = document.getElementById('chat-form');
-        const chatInput = document.getElementById('chat-input');
-        if (chatForm && chatInput) {
-            chatInput.focus();
-            chatInput.addEventListener('keydown', function (event) {
-                if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
-                    event.preventDefault();
-                    if (chatInput.value.trim() !== '') {
-                        chatForm.submit();
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('chatComponent', (initialMessages, sessionId) => ({
+            messages: initialMessages,
+            sessionId,
+            messageText: '',
+            isSending: false,
+            init() {
+                this.$nextTick(() => {
+                    this.scrollToBottom();
+                    if (this.$refs.chatInput) {
+                        this.$refs.chatInput.focus();
                     }
+                });
+            },
+            scrollToBottom() {
+                if (this.$refs.chatContainer) {
+                    this.$refs.chatContainer.scrollTop = this.$refs.chatContainer.scrollHeight;
                 }
-            });
-        }
+            },
+            async send() {
+                const text = this.messageText.trim();
+                if (!text || this.isSending) {
+                    return;
+                }
+
+                this.isSending = true;
+
+                try {
+                    const response = await fetch('{{ url_for("api_send_message") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({ session_id: this.sessionId, message: text }),
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok || data.status !== 'ok') {
+                        throw new Error(data.error || 'Failed to send message');
+                    }
+
+                    data.messages.forEach((msg) => this.messages.push(msg));
+                    this.messageText = '';
+
+                    this.$nextTick(() => {
+                        this.scrollToBottom();
+                        if (this.$refs.chatInput) {
+                            this.$refs.chatInput.focus();
+                        }
+                    });
+                } catch (error) {
+                    console.error(error);
+                    alert('Unable to send message right now. Reloading chat.');
+                    window.location.reload();
+                } finally {
+                    this.isSending = false;
+                }
+            },
+        }));
     });
 </script>
 {% endblock %}

@@ -7,7 +7,12 @@ from datetime import datetime
 from functools import wraps
 from pathlib import Path
 from typing import List, Optional
+from dotenv import load_dotenv
 
+load_dotenv()
+
+
+print()
 from flask import (
     Flask,
     abort,
@@ -18,6 +23,7 @@ from flask import (
     request,
     session,
     url_for,
+    jsonify,
 )
 from openai import OpenAI
 
@@ -25,13 +31,10 @@ BASE_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = BASE_DIR / "database.db"
 SECRET_KEY = "replace-with-a-random-secret"
 
-OLLAMA_API_BASE = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434/v1")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "ollama")
-SYSTEM_PROMPT = os.environ.get(
-    "CHAT_SYSTEM_PROMPT",
-    "You are a helpful assistant for a Toll Analytics system application.",
-)
+OLLAMA_API_BASE = os.getenv("OLLAMA_API_BASE")
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL')
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+SYSTEM_PROMPT = os.getenv("CHAT_SYSTEM_PROMPT")
 
 
 app = Flask(__name__)
@@ -125,6 +128,21 @@ def ensure_full_name_column(db: sqlite3.Connection) -> None:
 # --- LLM helpers -----------------------------------------------------------
 
 
+def format_timestamp_value(value: Optional[str | datetime]) -> str:
+    if not value:
+        return ""
+
+    if isinstance(value, datetime):
+        dt = value
+    else:
+        try:
+            dt = datetime.fromisoformat(str(value))
+        except ValueError:
+            return str(value)
+
+    return dt.strftime("%b %d, %Y %I:%M %p")
+
+
 def get_session_messages(db: sqlite3.Connection, session_id: int) -> List[sqlite3.Row]:
     return db.execute(
         """
@@ -162,17 +180,72 @@ def call_llm(db: sqlite3.Connection, session_id: int) -> str:
         response = llm_client.chat.completions.create(
             model=OLLAMA_MODEL,
             messages=messages,
+            temperature=0.7,
+            max_tokens=2048,
+            stream=False,
+            timeout=120,
         )
-        
-        print(response)
         choice = response.choices[0]
         content = getattr(choice.message, "content", None)
-        if not content:
+
+        if isinstance(content, list):
+            text = "".join(part.get("text", "") for part in content)
+        else:
+            text = content or ""
+
+        text = text.strip()
+        if not text:
             raise ValueError("Received empty response from model")
-        return content.strip()
+        return text
     except Exception as exc:  # noqa: BLE001
         app.logger.exception("LLM call failed: %s", exc)
         return "I ran into an issue generating a response. Please try again."
+
+
+# --- Message helpers ------------------------------------------------------
+
+
+def serialize_message(row: sqlite3.Row) -> dict[str, str | int]:
+    raw_timestamp = row["timestamp"]
+    if isinstance(raw_timestamp, datetime):
+        iso_timestamp = raw_timestamp.isoformat()
+    else:
+        try:
+            iso_timestamp = datetime.fromisoformat(str(raw_timestamp)).isoformat()
+        except ValueError:
+            iso_timestamp = str(raw_timestamp)
+
+    return {
+        "id": row["id"],
+        "session_id": row["session_id"],
+        "sender": row["sender"],
+        "message_text": row["message_text"],
+        "timestamp": iso_timestamp,
+        "formatted_timestamp": format_timestamp_value(raw_timestamp),
+    }
+
+
+def create_message(
+    db: sqlite3.Connection,
+    session_id: int,
+    sender: str,
+    text: str,
+    timestamp: Optional[datetime] = None,
+) -> dict[str, str | int]:
+    timestamp = timestamp or datetime.utcnow()
+    cur = db.execute(
+        "INSERT INTO messages (session_id, sender, message_text, timestamp) VALUES (?, ?, ?, ?)",
+        (session_id, sender, text, timestamp),
+    )
+    db.commit()
+    return {
+        "id": cur.lastrowid,
+        "session_id": session_id,
+        "sender": sender,
+        "message_text": text,
+        "timestamp": timestamp.isoformat(),
+        "formatted_timestamp": format_timestamp_value(timestamp),
+    }
 
 
 # --- Authentication helpers ----------------------------------------------
@@ -273,18 +346,20 @@ def chat():
 
     messages = db.execute(
         """
-        SELECT id, sender, message_text, timestamp
+        SELECT id, session_id, sender, message_text, timestamp
         FROM messages
         WHERE session_id = ?
         ORDER BY timestamp ASC
         """,
         (current_session_id,),
     ).fetchall()
+    messages_data = [serialize_message(row) for row in messages]
 
     return render_template(
         "chat.html",
         selected_session=selected_session,
         messages=messages,
+        messages_data=messages_data,
     )
 
 
@@ -335,23 +410,52 @@ def send_message():
         flash("Message cannot be empty.", "error")
         return redirect(url_for("chat", session_id=session_id))
 
-    timestamp = datetime.utcnow()
-    db.execute(
-        "INSERT INTO messages (session_id, sender, message_text, timestamp) VALUES (?, ?, ?, ?)",
-        (session_id, "user", prompt, timestamp),
-    )
-    db.commit()
+    create_message(db, session_id, "user", prompt)
 
     ai_reply = call_llm(db, session_id)
-    db.execute(
-        "INSERT INTO messages (session_id, sender, message_text, timestamp) VALUES (?, ?, ?, ?)",
-        (session_id, "ai", ai_reply, datetime.utcnow()),
-    )
-    db.commit()
+    create_message(db, session_id, "ai", ai_reply)
 
     session["current_session_id"] = session_id
 
     return redirect(url_for("chat", session_id=session_id))
+
+
+@app.route("/api/messages", methods=["POST"])
+@login_required
+def api_send_message():
+    if not request.is_json:
+        return jsonify({"status": "error", "error": "Expected JSON payload."}), 400
+
+    payload = request.get_json(silent=True) or {}
+    session_id = payload.get("session_id")
+    prompt = (payload.get("message") or "").strip()
+
+    if not session_id:
+        return jsonify({"status": "error", "error": "Missing session_id."}), 400
+
+    try:
+        session_id = int(session_id)
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "error": "Invalid session_id."}), 400
+
+    db = get_db()
+    session_exists = db.execute(
+        "SELECT id FROM chat_sessions WHERE id = ?",
+        (session_id,),
+    ).fetchone()
+    if session_exists is None:
+        return jsonify({"status": "error", "error": "Chat session not found."}), 404
+
+    if not prompt:
+        return jsonify({"status": "error", "error": "Message cannot be empty."}), 400
+
+    user_message = create_message(db, session_id, "user", prompt)
+    ai_reply = call_llm(db, session_id)
+    ai_message = create_message(db, session_id, "ai", ai_reply)
+
+    session["current_session_id"] = session_id
+
+    return jsonify({"status": "ok", "messages": [user_message, ai_message]})
 
 
 @app.route("/profile", methods=["GET", "POST"])
@@ -428,6 +532,11 @@ def inject_user():
         "username": session.get("username"),
         "full_name": session.get("full_name"),
     }
+
+
+@app.template_filter("format_timestamp")
+def format_timestamp(value: Optional[str | datetime]) -> str:
+    return format_timestamp_value(value)
 
 
 if __name__ == "__main__":
