@@ -33,6 +33,88 @@ SYSTEM_ANSWER = os.environ.get(
 SCHEMA_PATH = Path(os.environ.get("SQL_SCHEMA_PATH", "schema.json"))
 MAX_RESULT_ROWS = int(os.environ.get("SQL_RESULT_LIMIT", "200"))
 
+BUSINESS_GUIDELINES = """
+Terminology guide:
+- "SPV" means project or plaza special purpose vehicle; map to columns like project_name, project_description, Project Name, or Project - Code.
+- Actual toll revenue is typically stored in collected_fare_tms (daily_transaction_* tables) or collected_fare_tms (Exemption Data). Expected or planned revenue is expected_amount or fields in Total Revenue Master / Budget tables.
+- Traffic counts are in traffic_count columns or *_traffic fields (FTD, MTD, QTD, YTD) in daily_transaction_* tables; PCU stands for passenger car units (pcu_traffic_* columns).
+- Budget/plan information lives in Budget_Traffic (Traffic Budgets by SPV, Year, Month) and Budget Head report.
+- Exemption analysis uses Exemption Data (wim_amount, refund_amount, final_wim_amt, exemption_category, etc.).
+- Cost of operations metrics come from Cost of Operation Master (columns like Column26, Revenue Model, etc.) and Total Revenue Master for planned vs actual comparisons.
+- Force Majeure events are recorded in Force Majeure 1 table (affected period, claims, approvals by level).
+- Accident trends use tables containing columns like fatal, major, minor if available; otherwise respond that data is unavailable.
+
+SQL best practices:
+- Always return aggregated results with aliases e.g. SUM(collected_fare_tms) AS total_actual_revenue.
+- When filtering by date phrases like "today" use CAST(transaction_date_time AS DATE) = CAST(GETDATE() AS DATE).
+- For month/year comparisons use DATEFROMPARTS or YEAR(), MONTH() on transaction_date_time.
+- When computing variance use formula (actual - planned) / NULLIF(planned,0) * 100.
+- Always include ORDER BY clauses when returning "top" results and use TOP N.
+- Use only single SELECT statement.
+"""
+
+TABLE_HINTS: List[Dict[str, Any]] = [
+    {
+        "table": "daily_transaction_final",
+        "keywords": [
+            "revenue",
+            "traffic",
+            "collection",
+            "variance",
+            "today",
+            "daily",
+            "ftd",
+            "mtd",
+            "qtd",
+            "ytd",
+            "spv",
+            "top",
+        ],
+        "description": "Granular daily transactions with collected_fare_tms (actual revenue), expected_amount (planned), traffic_count, PCU metrics, project_name, plaza_name.",
+    },
+    {
+        "table": "daily_transaction_mtd_ytd",
+        "keywords": ["mtd", "ytd", "traffic"],
+        "description": "Aggregated traffic counts (FTD, MTD, QTD, YTD) by project/plaza and date.",
+    },
+    {
+        "table": "Budget_Traffic",
+        "keywords": ["plan", "planned", "budget", "traffic", "tariff"],
+        "description": "Traffic budgets by SPV (project), year, month, vehicle class.",
+    },
+    {
+        "table": "Total Revenue Master",
+        "keywords": ["plan", "planned", "revenue", "tariff", "yoY"],
+        "description": "Revenue master data with planned figures and project metadata.",
+    },
+    {
+        "table": "Cost of Operation Master",
+        "keywords": ["cost", "opex", "mmr", "maintenance", "saving", "exceeding"],
+        "description": "Operational cost data per project/SPV with classification columns.",
+    },
+    {
+        "table": "Force Majeure 1",
+        "keywords": ["force majeure", "claim", "days", "approved", "dispute", "settlement"],
+        "description": "Force majeure events with status by approval level and affected period.",
+    },
+    {
+        "table": "Exemption Data",
+        "keywords": ["exemption", "wim", "refund", "pass", "variance"],
+        "description": "Vehicle exemptions and revenue adjustments per transaction with wim_amount, refund_amount, final_wim_amt.",
+    },
+    {
+        "table": "Finance Master",
+        "keywords": ["valuation", "network impact", "finance"],
+        "description": "Finance master data for each project/SPV including revenue model, cluster, concession details.",
+    },
+    {
+        "table": "Route Operation Master",
+        "keywords": ["route", "operation", "network", "impact"],
+        "description": "Operational metadata for each project, including lane counts, models, integrators.",
+    },
+]
+
+
 CONNECTION_STRING = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
     f"SERVER={os.getenv('SQL_SERVER')};"
@@ -51,6 +133,71 @@ class SQLGenerationResult:
 
 
 # --- Schema utilities ------------------------------------------------------
+
+
+def load_schema() -> Dict[str, Any]:
+    if not SCHEMA_PATH.exists():
+        raise FileNotFoundError(f"Schema file not found: {SCHEMA_PATH}")
+    return json.loads(SCHEMA_PATH.read_text())
+
+
+def select_relevant_tables(question: str, max_tables: int = 6) -> List[str]:
+    q = question.lower()
+    scored: List[tuple[int, str]] = []
+
+    for hint in TABLE_HINTS:
+        score = sum(1 for kw in hint["keywords"] if kw in q)
+        if score > 0:
+            scored.append((score, hint["table"]))
+
+    scored.sort(reverse=True)
+    ordered = []
+    seen = set()
+    for _, table in scored:
+        if table not in seen:
+            ordered.append(table)
+            seen.add(table)
+        if len(ordered) >= max_tables:
+            break
+    return ordered
+
+
+def build_schema_context(question: str, limit_columns: int = 18) -> str:
+    data = load_schema()
+    lookup = {tbl["name"]: tbl for tbl in data.get("tables", [])}
+
+    table_names = select_relevant_tables(question)
+    included: List[str] = []
+
+    # Ensure we include at least a couple of core tables even if keywords miss.
+    defaults = ["daily_transaction_final", "Budget_Traffic", "Exemption Data"]
+    for default in defaults:
+        if default in lookup and default not in table_names:
+            table_names.append(default)
+
+    context_lines = [f"Database: {data.get('database', 'unknown')}"]
+
+    for table_name in table_names:
+        tbl = lookup.get(table_name)
+        if not tbl:
+            continue
+        hint = next((h for h in TABLE_HINTS if h["table"] == table_name), None)
+        if hint:
+            context_lines.append(f"Table {table_name}: {hint['description']}")
+        else:
+            context_lines.append(f"Table {table_name}.")
+
+        columns = tbl.get("columns", [])
+        for col in columns[:limit_columns]:
+            nullable = "NULL" if col.get("is_nullable") else "NOT NULL"
+            context_lines.append(
+                f"  - {col['name']} ({col['data_type']}, {nullable})"
+            )
+        if len(columns) > limit_columns:
+            context_lines.append("  ...")
+
+    context_lines.append("Business notes:\n" + BUSINESS_GUIDELINES.strip())
+    return "\n".join(context_lines)
 
 
 def load_schema_snippet(limit_tables: int = 15, limit_columns: int = 12) -> str:
@@ -185,7 +332,7 @@ def generate_answer(question: str, sql: str, rows: List[Dict[str, Any]]) -> str:
 
 
 def run(question: str) -> Dict[str, Any]:
-    schema_context = load_schema_snippet()
+    schema_context = build_schema_context(question)
     sql_result = generate_sql(question, schema_context)
 
     if not sql_result.sql:
