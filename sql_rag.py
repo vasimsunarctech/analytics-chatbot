@@ -7,9 +7,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
-
+from dotenv import load_dotenv
 import pyodbc
 from openai import OpenAI
+load_dotenv()
 
 # --- Configuration ---------------------------------------------------------
 
