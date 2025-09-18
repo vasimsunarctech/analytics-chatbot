@@ -1,0 +1,5972 @@
+{
+  "database": "proddb",
+  "tables": [
+    {
+      "schema": "dbo",
+      "name": "avg_daily_transaction",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Ftd_avg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 13,
+          "default": null
+        },
+        {
+          "name": "Mtd_avg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 13,
+          "default": null
+        },
+        {
+          "name": "Qtd_avg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 13,
+          "default": null
+        },
+        {
+          "name": "Ytd_avg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 13,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "backuptraffic2806",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "incident_action_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "collected_fare_tms",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insertion_date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "bucket_data",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "collected_fare_tms",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_factor_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_factor_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 18,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "incident_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "bucket",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insertion_date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Budget Head report",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "S No",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Year",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SBU",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Count",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Budget_Traffic",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": " SPV ",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Year",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Month",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Vehicle Class",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Traffic Budgets",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "CalendarData",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "DateValue",
+          "data_type": "date",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Month",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "Year",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "Month Name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 30,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Weekdays",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 30,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Fiscal Year",
+          "data_type": "varchar",
+          "is_nullable": false,
+          "max_length": 5,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Fiscal Month",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "Fiscal Quarter",
+          "data_type": "varchar",
+          "is_nullable": false,
+          "max_length": 5,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Cost of Operation Master",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "Sl No",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project - Code",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project Name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SAP Company Codes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SBU's",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Highway No",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Client",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "State",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage From",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage To",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Length",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Awarded date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Operation Start",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession years ",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession ends on",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "PPP model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Cluster",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Revenue Model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "No Of Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes at Toll Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator TMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator HTMS/ATMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Ticketing Tool",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Civil/Electrical/Equipment /Route Ops MIS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Column26",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "daily_transaction_final",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "incident_action_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "collected_fare_tms",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insertion_date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "daily_transaction_final_backup",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "incident_action_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "collected_fare_tms",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insertion_date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "daily_transaction_final_new",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "incident_action_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "collected_fare_tms",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insertion_date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "daily_transaction_final_old",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "incident_action_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "collected_fare_tms",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 770,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insertion_date",
+          "data_type": "datetime2",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "daily_transaction_final1",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 18,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "collected_fare_tms",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "incident_action_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insertion_date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "daily_transaction_mtd_ytd",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "FTD_traffic",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "MTD_Traffic",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "QTD_Traffic",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "YTD_Traffic",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "daily_transaction_plazawise",
+      "type": "VIEW",
+      "columns": [
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "FTD_traffic",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "MTD_Traffic",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "QTD_Traffic",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "YTD_Traffic",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "daily_transaction_projectwise",
+      "type": "VIEW",
+      "columns": [
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Ftd_avg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 13,
+          "default": null
+        },
+        {
+          "name": "Mtd_avg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 13,
+          "default": null
+        },
+        {
+          "name": "Qtd_avg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 13,
+          "default": null
+        },
+        {
+          "name": "Ytd_avg",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 13,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Encroachment Data Backup",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "Encroachment ID",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Spv",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Patrol Section And Road Section",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Day",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Start Chainage",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Type Of Encroachment",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Details",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Action Taken",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Action Date Time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Removal Status",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Date Of Removal",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Befor/ after COD",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "ESG Capacity",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "SPV",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Installation Date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Capacity (kw)",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "No# of panels",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Total Capacity (kw)",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "New_SPV",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Exemption Data",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_id_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_id_tc",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_tc",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_id_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_id_avc_tms",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_avc_tms",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "incident_action_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "date",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "collected_fare_tms",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "initial_settled_amount_fastag",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "oc_amount",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "uc_amount",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 770,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "tariff_type_for_cash_and_noncash",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pass_com_flag_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pass_com_flag_tc",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pass_com_flag_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pass_com_flag_avc_tms",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "tms_batch_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "check_flag",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 1,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "yearmonth_batch",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 24,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_avc_tms",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_tc",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insert_date_time",
+          "data_type": "datetime2",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "avc_class_id_tms",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "charged_vehicle_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "tc_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "avc_class_tms",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "charged_vehicle_class",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "tc_class",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "missing_api_batch",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 12,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "wim_amount",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "refund_amount",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_wim_amt",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "wim_status",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 300,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Exemption_data_old",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_id_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_id_tc",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_tc",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_id_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_id_avc_tms",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_avc_tms",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "incident_action_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "date",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "collected_fare_tms",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "initial_settled_amount_fastag",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "oc_amount",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "uc_amount",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 770,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "tariff_type_for_cash_and_noncash",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pass_com_flag_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pass_com_flag_tc",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pass_com_flag_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pass_com_flag_avc_tms",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "tms_batch_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "check_flag",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 1,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "yearmonth_batch",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 24,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_avc_tms",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_tc",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insert_date_time",
+          "data_type": "datetime2",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "avc_class_id_tms",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "charged_vehicle_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "tc_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "avc_class_tms",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "charged_vehicle_class",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "tc_class",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "missing_api_batch",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 12,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "wim_amount",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "refund_amount",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_wim_amt",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "wim_status",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 300,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Finance Master",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "Sl No",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project - Code",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project Name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SAP Company Codes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SBU's",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Highway No",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Client",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "State",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage From",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage To",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Length",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Awarded date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Operation Start",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession years ",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession ends on",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "PPP model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Cluster",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Revenue Model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "No Of Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes at Toll Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator TMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator HTMS/ATMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Force Majeure 1",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "S.No",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SPV",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Event",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Type of Force Majeure event",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Affected Period From",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Affected Period To",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SPV Claim Extension of time",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SPV Claim Force Majeure Cost",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SPV Claim Date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "IE Extension of time",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "IE Force majeure Cost",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "IE Date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "PD Extension of time",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "PD Force majeure Cost",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "PD Date",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "RO Extension of time",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "RO Force majeure Cost",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "RO Date",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "NHAI HQ Extension of time",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "NHAI HQ Force majeure Cost",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "NHAI Date",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Remarks",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Insurance Master",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "Sl No",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project - Code",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project Name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SAP Company Codes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SBU's",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Highway No",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Client",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "State",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage From",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage To",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Length",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Awarded date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Operation Start",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession years ",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession ends on",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "PPP model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Cluster",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Revenue Model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "No Of Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes at Toll Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator TMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator HTMS/ATMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Ticketing Tool",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Civil/Electrical/Equipment /Route Ops MIS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Column26",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "iris_ods_tmsdata_revenue_stagging",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "cash",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "fastag",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "others",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "pass_amount",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "total",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "overload",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "batch",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 20,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insert_batch",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insert_date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "budget",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 18,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "double_penalty",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "iris_tolltraffic_stagging",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_expected",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 18,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "collected_fare_tms",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "transaction_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_traffic_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "incident_action_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insertion_date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "iris_tolltrafficbucket_stagging",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "collected_fare_tms",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "transaction_date_time",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_side",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_class",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_factor_charged",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pcu_factor_expected",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "expected_amount",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "exemption_category",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 18,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "incident_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "bucket",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 100,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insertion_date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "KWTPL TARRIF",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "display_class_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Expected Revenue",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Plaza",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "latest_data",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "transaction_date_time",
+          "data_type": "date",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "Revenue",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "New_data",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "transaction_date_time",
+          "data_type": "date",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "display_class_charged",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "final_journey_sub_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "payment_type",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "lane_direction",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "shift_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "traffic",
+          "data_type": "bigint",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 19,
+          "numeric_scale": 0,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "ods_tmsdata_revenue",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "date",
+          "data_type": "datetime2",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "ihmcl_plaza_id",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "cash",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "fastag",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "others",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "pass_amount",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "total",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "overload",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "traffic_count",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "batch",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 20,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insert_batch",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 256,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "insert_date",
+          "data_type": "datetime2",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "budget",
+          "data_type": "numeric",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 18,
+          "numeric_scale": 0,
+          "default": null
+        },
+        {
+          "name": "double_penalty",
+          "data_type": "int",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 10,
+          "numeric_scale": 0,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Project Master for Plaza",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "S NO",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "indinfravit_region_or_cluster",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "sort_order",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_description",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "project_location",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "plaza_chainage",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "no_of_lanes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "no_of_reversible_lanes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "pincode",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "state",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "swb_available_Y/N",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "latitude",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "longitude",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "New_project",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "New_plaza",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "project_master",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "Sl No",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project - Code",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SAP Company Codes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SBU's",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Route Operation Master",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "Sl No",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project - Code",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project Name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SAP Company Codes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SBU's",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Highway No",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Client",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "State",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage From",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage To",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Length",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Awarded date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Operation Start",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession years ",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession ends on",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "PPP model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Cluster",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Revenue Model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "No Of Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes at Toll Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator TMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator HTMS/ATMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Ticketing Tool",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Civil/Electrical/Equipment /Route Ops MIS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Column26",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "New_project",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "New_project_Encr",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Toll Revenue Master",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "Sl No",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project - Code",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project Name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SAP Company Codes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SBU's",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Highway No",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Client",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "State",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage From",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage To",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Length",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Awarded date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Operation Start",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession years ",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession ends on",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "PPP model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Cluster",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Revenue Model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "No Of Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes at Toll Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator TMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator HTMS/ATMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Ticketing Tool",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Civil/Electrical/Equipment /Route Ops MIS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Column26",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Total Revenue Master",
+      "type": "BASE TABLE",
+      "columns": [
+        {
+          "name": "Sl No",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project - Code",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project Name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SAP Company Codes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SBU's",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Highway No",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Client",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "State",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage From",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Chainage To",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Length",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Awarded date",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Operation Start",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession years ",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Concession ends on",
+          "data_type": "datetime",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "PPP model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Cluster",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Revenue Model",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "No Of Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Lanes at Toll Plaza",
+          "data_type": "float",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 53,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator TMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "System Integrator HTMS/ATMS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Ticketing Tool",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Civil/Electrical/Equipment /Route Ops MIS",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Column26",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "vw_weekdays_projectwise",
+      "type": "VIEW",
+      "columns": [
+        {
+          "name": "Month Name",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 30,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Weekdays",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 30,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Fiscal Quarter",
+          "data_type": "varchar",
+          "is_nullable": false,
+          "max_length": 5,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "Project - Code",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "SBU's",
+          "data_type": "nvarchar",
+          "is_nullable": true,
+          "max_length": 255,
+          "numeric_precision": null,
+          "numeric_scale": null,
+          "default": null
+        },
+        {
+          "name": "FY 23-24 Traffic Count",
+          "data_type": "decimal",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 11,
+          "default": null
+        },
+        {
+          "name": "FY 22-23 Traffic Count",
+          "data_type": "decimal",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 11,
+          "default": null
+        },
+        {
+          "name": "Variance",
+          "data_type": "decimal",
+          "is_nullable": true,
+          "max_length": null,
+          "numeric_precision": 38,
+          "numeric_scale": 11,
+          "default": null
+        }
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    }
+  ]
+}
