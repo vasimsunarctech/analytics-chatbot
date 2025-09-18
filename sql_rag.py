@@ -13,9 +13,9 @@ from openai import OpenAI
 
 # --- Configuration ---------------------------------------------------------
 
-OLLAMA_API_BASE = os.environ.get("OLLAMA_API_BASE", "http://localhost:11434/v1")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "phi3:3.8b")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "ollama")
+OLLAMA_API_BASE = os.getenv("OLLAMA_API_BASE")
+OLLAMA_MODEL = os.getenv('OLLAMA_MODEL')
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 SYSTEM_SQL_GEN = os.environ.get(
     "SQL_SYSTEM_PROMPT",
     """You are an expert SQL assistant for a Microsoft SQL Server data warehouse.\n"
