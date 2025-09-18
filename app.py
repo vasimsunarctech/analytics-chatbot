@@ -11,8 +11,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-print()
 from flask import (
     Flask,
     abort,

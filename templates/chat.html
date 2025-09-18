@@ -25,7 +25,7 @@
                 <p class="text-sm text-gray-500">No messages yet. Say hello!</p>
             </template>
             <template x-for="msg in messages" :key="msg.id">
-                <div class="flex" :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'">
+                <div class="flex mb-5" :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'">
                     <div class="max-w-xl rounded-2xl px-4 py-3 text-sm shadow-sm" :class="msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'">
                         <p class="whitespace-pre-wrap" x-text="msg.message_text"></p>
                         <span class="mt-2 block text-xs opacity-70" x-text="msg.formatted_timestamp"></span>
