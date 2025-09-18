@@ -6,7 +6,7 @@
 
 {% block content %}
 <div
-    x-data="chatComponent({{ messages_data|tojson }}, {{ selected_session.id }})"
+    x-data='chatComponent({{ messages_data|tojson|safe }}, {{ selected_session.id }})'
     x-init="init()"
     class="space-y-6"
 >
