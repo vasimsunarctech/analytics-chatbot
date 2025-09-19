@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import sqlite3
+import json
 import os
+import sqlite3
 from contextlib import closing
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,22 +24,14 @@ from flask import (
     url_for,
     jsonify,
 )
-from openai import OpenAI
+from sql_rag import run as sql_rag_run
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = BASE_DIR / "database.db"
 SECRET_KEY = "replace-with-a-random-secret"
 
-OLLAMA_API_BASE = os.getenv("OLLAMA_API_BASE")
-OLLAMA_MODEL = os.getenv('OLLAMA_MODEL')
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-SYSTEM_PROMPT = os.getenv("CHAT_SYSTEM_PROMPT")
-
-
 app = Flask(__name__)
 app.config.update(SECRET_KEY=SECRET_KEY, DATABASE=str(DATABASE_PATH))
-
-llm_client = OpenAI(api_key=OPENAI_API_KEY, base_url=OLLAMA_API_BASE)
 
 
 # --- Database helpers -----------------------------------------------------
@@ -90,6 +83,7 @@ def init_db() -> None:
                 sender TEXT NOT NULL CHECK(sender IN ('user', 'ai')),
                 message_text TEXT NOT NULL,
                 timestamp DATETIME NOT NULL,
+                metadata TEXT,
                 FOREIGN KEY (session_id) REFERENCES chat_sessions (id)
                     ON DELETE CASCADE
             )
@@ -97,6 +91,7 @@ def init_db() -> None:
         )
 
         ensure_full_name_column(db)
+        ensure_message_metadata_column(db)
 
         cur.execute(
             "SELECT id, full_name FROM users WHERE username = ?",
@@ -123,6 +118,12 @@ def ensure_full_name_column(db: sqlite3.Connection) -> None:
         db.execute("ALTER TABLE users ADD COLUMN full_name TEXT")
 
 
+def ensure_message_metadata_column(db: sqlite3.Connection) -> None:
+    columns = {row["name"] for row in db.execute("PRAGMA table_info(messages)")}
+    if "metadata" not in columns:
+        db.execute("ALTER TABLE messages ADD COLUMN metadata TEXT")
+
+
 # --- LLM helpers -----------------------------------------------------------
 
 
@@ -141,69 +142,92 @@ def format_timestamp_value(value: Optional[str | datetime]) -> str:
     return dt.strftime("%b %d, %Y %I:%M %p")
 
 
-def get_session_messages(db: sqlite3.Connection, session_id: int) -> List[sqlite3.Row]:
-    return db.execute(
-        """
-        SELECT sender, message_text
-        FROM messages
-        WHERE session_id = ?
-        ORDER BY timestamp ASC
-        """,
-        (session_id,),
-    ).fetchall()
+def make_json_serializable(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return value
 
+def derive_chart_from_rows(rows: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not rows:
+        return None
 
-def build_conversation_payload(rows: List[sqlite3.Row]) -> List[dict[str, str]]:
-    messages: List[dict[str, str]] = []
-    if SYSTEM_PROMPT:
-        messages.append({"role": "system", "content": SYSTEM_PROMPT})
+    sample = rows[0]
+    string_keys = [
+        k
+        for k, v in sample.items()
+        if isinstance(v, (str, datetime))
+    ]
+    numeric_keys = [
+        k
+        for k, v in sample.items()
+        if isinstance(v, (int, float)) and not isinstance(v, bool)
+    ]
 
+    if not string_keys or not numeric_keys:
+        return None
+
+    label_key = string_keys[0]
+    value_key = numeric_keys[0]
+
+    labels: List[str] = []
+    values: List[float] = []
     for row in rows:
-        role = "assistant" if row["sender"] == "ai" else "user"
-        messages.append({"role": role, "content": row["message_text"]})
+        label = row.get(label_key)
+        value = row.get(value_key)
+        if label is None or value is None:
+            continue
+        try:
+            values.append(float(value))
+        except (TypeError, ValueError):
+            return None
+        labels.append(str(label))
 
-    return messages
+    if not labels or not values:
+        return None
 
+    return {
+        "type": "bar",
+        "label": value_key.replace("_", " ").title(),
+        "labels": labels,
+        "data": values,
+    }
 
-def call_llm(db: sqlite3.Connection, session_id: int) -> str:
-    """Call the Ollama-backed model using the OpenAI SDK."""
-    rows = get_session_messages(db, session_id)
-    messages = build_conversation_payload(rows)
-
-    if len(messages) == (1 if SYSTEM_PROMPT else 0):
-        # Ensure the assistant has at least one user message to respond to.
-        return "I need a question to respond to."
-
+def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
     try:
-        response = llm_client.chat.completions.create(
-            model=OLLAMA_MODEL,
-            messages=messages,
-            temperature=0.7,
-            max_tokens=2048,
-            stream=False,
-            timeout=120,
-        )
-        choice = response.choices[0]
-        content = getattr(choice.message, "content", None)
-
-        if isinstance(content, list):
-            text = "".join(part.get("text", "") for part in content)
-        else:
-            text = content or ""
-
-        text = text.strip()
-        if not text:
-            raise ValueError("Received empty response from model")
-        return text
+        result = sql_rag_run(question)
     except Exception as exc:  # noqa: BLE001
-        app.logger.exception("LLM call failed: %s", exc)
-        return "I ran into an issue generating a response. Please try again."
+        app.logger.exception("SQL RAG execution failed: %s", exc)
+        return (
+            "I couldn't retrieve the requested information right now. Please try again later.",
+            None,
+        )
+
+    if result.get("status") != "ok":
+        message = result.get("message") or "I couldn't find data for that just now."
+        return (message, None)
+
+    answer = result.get("answer") or "I hope that helps."
+    rows = result.get("rows") or []
+
+    serializable_rows: List[Dict[str, Any]] = []
+    for row in rows:
+        serializable_rows.append({k: make_json_serializable(v) for k, v in row.items()})
+
+    metadata: Dict[str, Any] = {}
+    if serializable_rows:
+        metadata["rows"] = serializable_rows
+        metadata["columns"] = list(serializable_rows[0].keys())
+        chart = derive_chart_from_rows(rows)
+        if chart:
+            metadata["chart"] = chart
+
+    return answer, (metadata or None)
 
 
 # --- Message helpers ------------------------------------------------------
 
 
-def serialize_message(row: sqlite3.Row) -> dict[str, str | int]:
+def serialize_message(row: sqlite3.Row) -> dict[str, Any]:
     raw_timestamp = row["timestamp"]
     if isinstance(raw_timestamp, datetime):
         iso_timestamp = raw_timestamp.isoformat()
@@ -213,6 +237,15 @@ def serialize_message(row: sqlite3.Row) -> dict[str, str | int]:
         except ValueError:
             iso_timestamp = str(raw_timestamp)
 
+    keys = row.keys()
+    metadata_raw = row["metadata"] if "metadata" in keys else None
+    metadata: Optional[Dict[str, Any]] = None
+    if metadata_raw:
+        try:
+            metadata = json.loads(metadata_raw)
+        except json.JSONDecodeError:
+            metadata = None
+
     return {
         "id": row["id"],
         "session_id": row["session_id"],
@@ -220,6 +253,7 @@ def serialize_message(row: sqlite3.Row) -> dict[str, str | int]:
         "message_text": row["message_text"],
         "timestamp": iso_timestamp,
         "formatted_timestamp": format_timestamp_value(raw_timestamp),
+        "metadata": metadata,
     }
 
 
@@ -229,11 +263,13 @@ def create_message(
     sender: str,
     text: str,
     timestamp: Optional[datetime] = None,
-) -> dict[str, str | int]:
+    metadata: Optional[Dict[str, Any]] = None,
+) -> dict[str, Any]:
     timestamp = timestamp or datetime.utcnow()
+    metadata_json = json.dumps(metadata) if metadata else None
     cur = db.execute(
-        "INSERT INTO messages (session_id, sender, message_text, timestamp) VALUES (?, ?, ?, ?)",
-        (session_id, sender, text, timestamp),
+        "INSERT INTO messages (session_id, sender, message_text, timestamp, metadata) VALUES (?, ?, ?, ?, ?)",
+        (session_id, sender, text, timestamp, metadata_json),
     )
     db.commit()
     return {
@@ -243,6 +279,7 @@ def create_message(
         "message_text": text,
         "timestamp": timestamp.isoformat(),
         "formatted_timestamp": format_timestamp_value(timestamp),
+        "metadata": metadata,
     }
 
 
@@ -344,7 +381,7 @@ def chat():
 
     messages = db.execute(
         """
-        SELECT id, session_id, sender, message_text, timestamp
+        SELECT id, session_id, sender, message_text, timestamp, metadata
         FROM messages
         WHERE session_id = ?
         ORDER BY timestamp ASC
@@ -410,8 +447,8 @@ def send_message():
 
     create_message(db, session_id, "user", prompt)
 
-    ai_reply = call_llm(db, session_id)
-    create_message(db, session_id, "ai", ai_reply)
+    ai_reply, metadata = run_sql_rag(prompt)
+    create_message(db, session_id, "ai", ai_reply, metadata=metadata)
 
     session["current_session_id"] = session_id
 
@@ -448,8 +485,8 @@ def api_send_message():
         return jsonify({"status": "error", "error": "Message cannot be empty."}), 400
 
     user_message = create_message(db, session_id, "user", prompt)
-    ai_reply = call_llm(db, session_id)
-    ai_message = create_message(db, session_id, "ai", ai_reply)
+    ai_reply, metadata = run_sql_rag(prompt)
+    ai_message = create_message(db, session_id, "ai", ai_reply, metadata=metadata)
 
     session["current_session_id"] = session_id
 

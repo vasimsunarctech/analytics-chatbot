@@ -28,6 +28,33 @@
                 <div class="flex mb-5" :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'">
                     <div class="max-w-xl rounded-2xl px-4 py-3 text-sm shadow-sm" :class="msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'">
                         <p class="whitespace-pre-wrap" x-text="msg.message_text"></p>
+                        <template x-if="msg.metadata && msg.metadata.rows && msg.metadata.rows.length">
+                            <div class="mt-3 overflow-x-auto rounded-md bg-white/80 p-3 text-gray-800">
+                                <table class="min-w-full text-xs">
+                                    <thead>
+                                        <tr>
+                                            <template x-for="column in msg.metadata.columns" :key="column">
+                                                <th class="px-2 py-1 text-left font-semibold text-gray-600" x-text="column"></th>
+                                            </template>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template x-for="(row, rowIndex) in msg.metadata.rows" :key="rowIndex">
+                                            <tr class="border-t border-gray-200">
+                                                <template x-for="column in msg.metadata.columns" :key="column">
+                                                    <td class="px-2 py-1 text-gray-700" x-text="row[column] !== null && row[column] !== undefined ? row[column] : '—'"></td>
+                                                </template>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+                        <template x-if="msg.metadata && msg.metadata.chart">
+                            <div class="mt-4 h-64">
+                                <canvas :id="`chart-${msg.id}`" class="h-full w-full"></canvas>
+                            </div>
+                        </template>
                         <span class="mt-2 block text-xs opacity-70" x-text="msg.formatted_timestamp"></span>
                     </div>
                 </div>
@@ -69,18 +96,73 @@
             sessionId,
             messageText: '',
             isSending: false,
+            renderedCharts: {},
             init() {
+                this.$watch('messages', () => {
+                    this.$nextTick(() => this.renderCharts());
+                });
                 this.$nextTick(() => {
                     this.scrollToBottom();
                     if (this.$refs.chatInput) {
                         this.$refs.chatInput.focus();
                     }
+                    this.renderCharts();
                 });
             },
             scrollToBottom() {
                 if (this.$refs.chatContainer) {
                     this.$refs.chatContainer.scrollTop = this.$refs.chatContainer.scrollHeight;
                 }
+            },
+            renderCharts() {
+                if (typeof Chart === 'undefined') {
+                    return;
+                }
+                requestAnimationFrame(() => {
+                    this.messages.forEach((msg) => {
+                        const chartConfig = msg.metadata && msg.metadata.chart;
+                        if (!chartConfig) {
+                            return;
+                        }
+                        const canvasId = `chart-${msg.id}`;
+                        if (this.renderedCharts[canvasId]) {
+                            return;
+                        }
+                        const canvas = document.getElementById(canvasId);
+                        if (!canvas) {
+                            return;
+                        }
+                        const ctx = canvas.getContext('2d');
+                        this.renderedCharts[canvasId] = new Chart(ctx, {
+                            type: chartConfig.type || 'bar',
+                            data: {
+                                labels: chartConfig.labels,
+                                datasets: [
+                                    {
+                                        label: chartConfig.label || 'Value',
+                                        data: chartConfig.data,
+                                        backgroundColor: '#2563eb',
+                                        borderRadius: 4,
+                                    },
+                                ],
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                    },
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                    },
+                                },
+                            },
+                        });
+                    });
+                });
             },
             async send() {
                 const text = this.messageText.trim();
@@ -113,6 +195,7 @@
                         if (this.$refs.chatInput) {
                             this.$refs.chatInput.focus();
                         }
+                        this.renderCharts();
                     });
                 } catch (error) {
                     console.error(error);
