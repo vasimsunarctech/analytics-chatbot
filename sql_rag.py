@@ -195,49 +195,22 @@ def _fetch_table_schema_from_db(table_name: str) -> str:
         )
         pk_cols = {row.COLUMN_NAME for row in cursor.fetchall()}
 
-        cursor.execute(
-            """
-            SELECT 
-                fk_col.name AS FK_column,
-                pk_tab.name AS PK_table,
-                pk_col.name AS PK_column
-            FROM sys.foreign_keys fk
-            INNER JOIN sys.foreign_key_columns fkc 
-                ON fkc.constraint_object_id = fk.object_id
-            INNER JOIN sys.tables fk_tab 
-                ON fk_tab.object_id = fkc.parent_object_id
-            INNER JOIN sys.columns fk_col 
-                ON fkc.parent_object_id = fk_col.object_id 
-                AND fkc.parent_column_id = fk_col.column_id
-            INNER JOIN sys.tables pk_tab 
-                ON pk_tab.object_id = fkc.referenced_object_id
-            INNER JOIN sys.columns pk_col 
-                ON fkc.referenced_object_id = pk_col.object_id 
-                AND fkc.referenced_column_id = pk_col.column_id
-            WHERE fk_tab.name = ?
-            """,
-            table_name,
-        )
-        foreign_keys = [
-            f"{row.FK_column} → {row.PK_table}.{row.PK_column}"
-            for row in cursor.fetchall()
-        ]
-
     if not columns:
         return f"No schema details found for table '{table_name}'."
 
-    lines = [f"Table {table_name} columns:"]
+    def fmt(name: str) -> str:
+        name = name.strip()
+        if name.startswith("[") and name.endswith("]"):
+            return name
+        return f"[{name}]"
+
+    lines = [f"Table {fmt(table_name)} columns:"]
     for col in columns:
         default = col.COLUMN_DEFAULT if col.COLUMN_DEFAULT is not None else "None"
         pk_marker = " PK" if col.COLUMN_NAME in pk_cols else ""
         lines.append(
-            f"  - {col.COLUMN_NAME} ({col.DATA_TYPE}, nullable={col.IS_NULLABLE}, default={default}){pk_marker}"
+            f"  - {fmt(col.COLUMN_NAME)} ({col.DATA_TYPE}, nullable={col.IS_NULLABLE}, default={default}){pk_marker}"
         )
-
-    if foreign_keys:
-        lines.append("  Foreign keys:")
-        for fk in foreign_keys:
-            lines.append(f"    * {fk}")
 
     return "\n".join(lines)
 
@@ -260,8 +233,9 @@ def fetch_table_schema(table_name: str) -> str:
             cols = tbl.get("columns", [])
             parts = [f"Table {table_name} columns:"]
             for col in cols:
+                name_fmt = f"[{col['name']}]"
                 parts.append(
-                    f"  - {col['name']} ({col['data_type']}, nullable={'YES' if col.get('is_nullable') else 'NO'})"
+                    f"  - {name_fmt} ({col['data_type']}, nullable={'YES' if col.get('is_nullable') else 'NO'})"
                 )
             schema_text = "\n".join(parts)
 

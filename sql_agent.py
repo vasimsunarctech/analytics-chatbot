@@ -164,12 +164,18 @@ def _fetch_table_schema_from_db(table_name: str) -> str:
         )
         pk_cols = {row.COLUMN_NAME for row in cursor.fetchall()}
 
-        lines = [f"Table {table_name} columns:"]
+        def fmt(name: str) -> str:
+            name = name.strip()
+            if name.startswith("[") and name.endswith("]"):
+                return name
+            return f"[{name}]"
+
+        lines = [f"Table {fmt(table_name)} columns:"]
         for col in columns:
             default = col.COLUMN_DEFAULT if col.COLUMN_DEFAULT is not None else "None"
             pk_marker = " PK" if col.COLUMN_NAME in pk_cols else ""
             lines.append(
-                f"  - {col.COLUMN_NAME} ({col.DATA_TYPE}, nullable={col.IS_NULLABLE}, default={default}){pk_marker}"
+                f"  - {fmt(col.COLUMN_NAME)} ({col.DATA_TYPE}, nullable={col.IS_NULLABLE}, default={default}){pk_marker}"
             )
         return "\n".join(lines)
 
