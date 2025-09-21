@@ -25,6 +25,7 @@ SYSTEM_SQL_GEN = os.environ.get(
     "Generate only SELECT queries. Never write INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, MERGE, or EXEC statements.\n"
     "Prefer using TOP 50 to keep result sets manageable unless the user explicitly requests exact counts.\n"
     "Use the provided schema description to pick correct table and column names.\n"
+    "When table or column names contain spaces, wrap them in square brackets exactly as shown (e.g., [Cost of Operation Master]). Never invent underscores or abbreviations.\n"
     "Return your answer strictly as JSON with the shape {\"sql\": \"...\", \"notes\": \"...\"}.\n"
     "If you cannot generate a safe query respond with {\"sql\": null, \"notes\": \"reason\"}.\n""",
 )
@@ -47,6 +48,7 @@ Terminology guide:
 - Cost of operations metrics come from Cost of Operation Master (columns like Column26, Revenue Model, etc.) and Total Revenue Master for planned vs actual comparisons.
 - Force Majeure events are recorded in Force Majeure 1 table (affected period, claims, approvals by level).
 - Accident trends use tables containing columns like fatal, major, minor if available; otherwise respond that data is unavailable.
+- Table and column names may contain spaces. Use them exactly as shown and wrap them in square brackets, e.g. [Cost of Operation Master]. Never invent underscores or abbreviations.
 
 SQL best practices:
 - Always return aggregated results with aliases e.g. SUM(collected_fare_tms) AS total_actual_revenue.
