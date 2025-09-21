@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 from contextlib import closing
 from datetime import datetime, timedelta
@@ -31,6 +32,7 @@ from sql_rag import run as sql_rag_run
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = BASE_DIR / "database.db"
 SECRET_KEY = "replace-with-a-random-secret"
+IST = ZoneInfo("Asia/Kolkata")
 
 app = Flask(__name__)
 app.config.update(SECRET_KEY=SECRET_KEY, DATABASE=str(DATABASE_PATH))
@@ -170,7 +172,7 @@ def classify_prompt(text: str) -> Tuple[str, Optional[str]]:
         return "empty", None
 
     for kind, triggers in SMALL_TALK_TRIGGERS.items():
-        if any(trigger in value for trigger in triggers):
+        if any(re.search(r"\b" + re.escape(trigger) + r"\b", value) for trigger in triggers):
             return "small_talk", kind
 
     if any(keyword in value for keyword in OUT_OF_SCOPE_KEYWORDS):
@@ -180,8 +182,7 @@ def classify_prompt(text: str) -> Tuple[str, Optional[str]]:
 
 
 def build_time_context() -> Dict[str, str]:
-    ist = ZoneInfo("Asia/Kolkata")
-    now = datetime.now(ist)
+    now = datetime.now(IST)
     today = now.date()
     first_of_month = today.replace(day=1)
     last_month_last_day = first_of_month - timedelta(days=1)
@@ -241,14 +242,18 @@ def format_timestamp_value(value: Optional[str | datetime]) -> str:
         return ""
 
     if isinstance(value, datetime):
-        dt = value
+        dt = value.astimezone(IST) if value.tzinfo else value.replace(tzinfo=ZoneInfo("UTC")).astimezone(IST)
     else:
         try:
             dt = datetime.fromisoformat(str(value))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=ZoneInfo("UTC")).astimezone(IST)
+            else:
+                dt = dt.astimezone(IST)
         except ValueError:
             return str(value)
 
-    return dt.strftime("%b %d, %Y %I:%M %p")
+    return dt.strftime("%b %d, %Y %I:%M %p IST")
 
 
 def make_json_serializable(value: Any) -> Any:
@@ -396,7 +401,7 @@ def create_message(
     timestamp: Optional[datetime] = None,
     metadata: Optional[Dict[str, Any]] = None,
 ) -> dict[str, Any]:
-    timestamp = timestamp or datetime.utcnow()
+    timestamp = timestamp or datetime.now(IST)
     metadata_json = json.dumps(metadata) if metadata else None
     cur = db.execute(
         "INSERT INTO messages (session_id, sender, message_text, timestamp, metadata) VALUES (?, ?, ?, ?, ?)",
@@ -562,10 +567,17 @@ def chat():
         """
     ).fetchall()
 
-    sessions_payload = [
-        {"id": row["id"], "session_name": row["session_name"]}
-        for row in sessions_rows
-    ]
+    sessions_payload = []
+    for row in sessions_rows:
+        created = row["created_at"]
+        formatted = format_timestamp_value(created)
+        sessions_payload.append(
+            {
+                "id": row["id"],
+                "session_name": row["session_name"],
+                "created_at": formatted,
+            }
+        )
 
     messages = db.execute(
         """
@@ -589,9 +601,9 @@ def chat():
 
 
 def create_new_session(db: sqlite3.Connection, session_name: Optional[str] = None) -> int:
-    timestamp = datetime.utcnow()
+    timestamp = datetime.now(IST)
     name = (session_name.strip() if session_name else None) or timestamp.strftime(
-        "New Chat %Y-%m-%d %H:%M:%S"
+        "New Chat %Y-%m-%d %I:%M %p"
     )
     cur = db.execute(
         "INSERT INTO chat_sessions (session_name, created_at) VALUES (?, ?)",
@@ -767,7 +779,17 @@ def chat_history():
         "SELECT id, session_name, created_at FROM chat_sessions ORDER BY created_at DESC",
     ).fetchall()
 
-    return render_template("chat_history.html", sessions=sessions)
+    formatted_sessions = []
+    for row in sessions:
+        formatted_sessions.append(
+            {
+                "id": row["id"],
+                "session_name": row["session_name"],
+                "created_at": format_timestamp_value(row["created_at"]),
+            }
+        )
+
+    return render_template("chat_history.html", sessions=formatted_sessions)
 
 
 @app.context_processor
