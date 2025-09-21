@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from dotenv import load_dotenv
 import pyodbc
 from openai import OpenAI
@@ -32,6 +34,8 @@ SYSTEM_ANSWER = os.environ.get(
 )
 SCHEMA_PATH = Path(os.environ.get("SQL_SCHEMA_PATH", "schema.json"))
 MAX_RESULT_ROWS = int(os.environ.get("SQL_RESULT_LIMIT", "200"))
+SCHEMA_CACHE_SECONDS = int(os.environ.get("SQL_SCHEMA_CACHE_SECONDS", "300"))
+SQL_MAX_RETRIES = int(os.environ.get("SQL_RETRY_ATTEMPTS", "1"))
 
 BUSINESS_GUIDELINES = """
 Terminology guide:
@@ -125,6 +129,8 @@ CONNECTION_STRING = (
 
 client = OpenAI(api_key=OPENAI_API_KEY, base_url=OLLAMA_API_BASE)
 
+_schema_cache: Dict[str, Any] = {"timestamp": 0.0, "tables": {}}
+
 
 @dataclass
 class SQLGenerationResult:
@@ -139,6 +145,108 @@ def load_schema() -> Dict[str, Any]:
     if not SCHEMA_PATH.exists():
         raise FileNotFoundError(f"Schema file not found: {SCHEMA_PATH}")
     return json.loads(SCHEMA_PATH.read_text())
+
+
+def _fetch_table_schema_from_db(table_name: str) -> str:
+    with get_connection() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_NAME = ?
+            ORDER BY ORDINAL_POSITION
+            """,
+            table_name,
+        )
+        columns = cursor.fetchall()
+
+        cursor.execute(
+            """
+            SELECT KU.COLUMN_NAME
+            FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS TC
+            JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS KU
+              ON TC.CONSTRAINT_NAME = KU.CONSTRAINT_NAME
+            WHERE TC.TABLE_NAME = ? AND TC.CONSTRAINT_TYPE = 'PRIMARY KEY'
+            """,
+            table_name,
+        )
+        pk_cols = {row.COLUMN_NAME for row in cursor.fetchall()}
+
+        cursor.execute(
+            """
+            SELECT 
+                fk_col.name AS FK_column,
+                pk_tab.name AS PK_table,
+                pk_col.name AS PK_column
+            FROM sys.foreign_keys fk
+            INNER JOIN sys.foreign_key_columns fkc 
+                ON fkc.constraint_object_id = fk.object_id
+            INNER JOIN sys.tables fk_tab 
+                ON fk_tab.object_id = fkc.parent_object_id
+            INNER JOIN sys.columns fk_col 
+                ON fkc.parent_object_id = fk_col.object_id 
+                AND fkc.parent_column_id = fk_col.column_id
+            INNER JOIN sys.tables pk_tab 
+                ON pk_tab.object_id = fkc.referenced_object_id
+            INNER JOIN sys.columns pk_col 
+                ON fkc.referenced_object_id = pk_col.object_id 
+                AND fkc.referenced_column_id = pk_col.column_id
+            WHERE fk_tab.name = ?
+            """,
+            table_name,
+        )
+        foreign_keys = [
+            f"{row.FK_column} → {row.PK_table}.{row.PK_column}"
+            for row in cursor.fetchall()
+        ]
+
+    if not columns:
+        return f"No schema details found for table '{table_name}'."
+
+    lines = [f"Table {table_name} columns:"]
+    for col in columns:
+        default = col.COLUMN_DEFAULT if col.COLUMN_DEFAULT is not None else "None"
+        pk_marker = " PK" if col.COLUMN_NAME in pk_cols else ""
+        lines.append(
+            f"  - {col.COLUMN_NAME} ({col.DATA_TYPE}, nullable={col.IS_NULLABLE}, default={default}){pk_marker}"
+        )
+
+    if foreign_keys:
+        lines.append("  Foreign keys:")
+        for fk in foreign_keys:
+            lines.append(f"    * {fk}")
+
+    return "\n".join(lines)
+
+
+def fetch_table_schema(table_name: str) -> str:
+    now = time.time()
+    cached = _schema_cache["tables"].get(table_name)
+    if cached and now - _schema_cache["timestamp"] < SCHEMA_CACHE_SECONDS:
+        return cached
+
+    try:
+        schema_text = _fetch_table_schema_from_db(table_name)
+    except Exception:
+        # Fall back to schema.json if live lookup fails
+        schema_data = load_schema()
+        tbl = next((t for t in schema_data.get("tables", []) if t.get("name") == table_name), None)
+        if not tbl:
+            schema_text = f"Schema not available for '{table_name}'."
+        else:
+            cols = tbl.get("columns", [])
+            parts = [f"Table {table_name} columns:"]
+            for col in cols:
+                parts.append(
+                    f"  - {col['name']} ({col['data_type']}, nullable={'YES' if col.get('is_nullable') else 'NO'})"
+                )
+            schema_text = "\n".join(parts)
+
+    _schema_cache["tables"][table_name] = schema_text
+    _schema_cache["timestamp"] = now
+    return schema_text
 
 
 def select_relevant_tables(question: str, max_tables: int = 6) -> List[str]:
@@ -162,41 +270,43 @@ def select_relevant_tables(question: str, max_tables: int = 6) -> List[str]:
     return ordered
 
 
-def build_schema_context(question: str, limit_columns: int = 18) -> str:
-    data = load_schema()
-    lookup = {tbl["name"]: tbl for tbl in data.get("tables", [])}
+def build_schema_context(
+    question: str,
+    time_context: Optional[Dict[str, str]] = None,
+) -> str:
+    data = {}
+    if SCHEMA_PATH.exists():
+        try:
+            data = load_schema()
+        except Exception:
+            data = {}
 
     table_names = select_relevant_tables(question)
-    included: List[str] = []
 
-    # Ensure we include at least a couple of core tables even if keywords miss.
     defaults = ["daily_transaction_final", "Budget_Traffic", "Exemption Data"]
     for default in defaults:
-        if default in lookup and default not in table_names:
+        if default not in table_names:
             table_names.append(default)
 
-    context_lines = [f"Database: {data.get('database', 'unknown')}"]
+    context_lines = []
+    if data:
+        context_lines.append(f"Database: {data.get('database', 'unknown')}")
 
     for table_name in table_names:
-        tbl = lookup.get(table_name)
-        if not tbl:
-            continue
         hint = next((h for h in TABLE_HINTS if h["table"] == table_name), None)
         if hint:
             context_lines.append(f"Table {table_name}: {hint['description']}")
         else:
             context_lines.append(f"Table {table_name}.")
 
-        columns = tbl.get("columns", [])
-        for col in columns[:limit_columns]:
-            nullable = "NULL" if col.get("is_nullable") else "NOT NULL"
-            context_lines.append(
-                f"  - {col['name']} ({col['data_type']}, {nullable})"
-            )
-        if len(columns) > limit_columns:
-            context_lines.append("  ...")
+        context_lines.append(fetch_table_schema(table_name))
 
     context_lines.append("Business notes:\n" + BUSINESS_GUIDELINES.strip())
+
+    if time_context:
+        formatted_time = "\n".join(f"  - {k}: {v}" for k, v in time_context.items())
+        context_lines.append("Time context:\n" + formatted_time)
+
     return "\n".join(context_lines)
 
 
@@ -225,11 +335,62 @@ def load_schema_snippet(limit_tables: int = 15, limit_columns: int = 12) -> str:
 # --- LLM helpers -----------------------------------------------------------
 
 
-def generate_sql(question: str, schema_context: str) -> SQLGenerationResult:
-    messages = [
+def _compose_sql_prompt(
+    question: str,
+    schema_context: str,
+    conversation: Optional[Sequence[Tuple[str, str]]],
+    time_context: Optional[Dict[str, str]],
+    previous_sql: Optional[str] = None,
+    previous_error: Optional[str] = None,
+) -> List[Dict[str, str]]:
+    sections = [f"Schema:\n{schema_context}"]
+
+    if time_context:
+        sections.append(
+            "Time context:" + "\n" + "\n".join(f"{k}: {v}" for k, v in time_context.items())
+        )
+
+    if conversation:
+        history_lines = []
+        for role, text in conversation[-6:]:
+            label = "USER" if role == "user" else "ASSISTANT"
+            history_lines.append(f"{label}: {text}")
+        sections.append("Recent conversation:\n" + "\n".join(history_lines))
+
+    if previous_sql or previous_error:
+        sections.append(
+            "Previous attempt:\n"
+            + (f"SQL: {previous_sql}\n" if previous_sql else "")
+            + (f"Error: {previous_error}\n" if previous_error else "")
+            + "Please provide a corrected SQL statement."
+        )
+
+    sections.append(f"Question: {question}")
+
+    user_message = "\n\n".join(sections)
+
+    return [
         {"role": "system", "content": SYSTEM_SQL_GEN},
-        {"role": "user", "content": f"Schema:\n{schema_context}\n\nQuestion: {question}"},
+        {"role": "user", "content": user_message},
     ]
+
+
+def generate_sql(
+    question: str,
+    schema_context: str,
+    conversation: Optional[Sequence[Tuple[str, str]]] = None,
+    time_context: Optional[Dict[str, str]] = None,
+    previous_sql: Optional[str] = None,
+    previous_error: Optional[str] = None,
+) -> SQLGenerationResult:
+    messages = _compose_sql_prompt(
+        question,
+        schema_context,
+        conversation,
+        time_context,
+        previous_sql,
+        previous_error,
+    )
 
     response = client.chat.completions.create(
         model=OLLAMA_MODEL,
@@ -305,7 +466,19 @@ def execute_query(sql: str) -> List[Dict[str, Any]]:
 # --- Answer generation -----------------------------------------------------
 
 
-def generate_answer(question: str, sql: str, rows: List[Dict[str, Any]]) -> str:
+def generate_answer(
+    question: str,
+    sql: str,
+    rows: List[Dict[str, Any]],
+    time_context: Optional[Dict[str, str]] = None,
+    conversation: Optional[Sequence[Tuple[str, str]]] = None,
+) -> str:
+    if not rows:
+        return (
+            "I couldn't find any matching data for that request in the TAS warehouse. "
+            "Try refining the project, date range, or metric."
+        )
+
     messages = [
         {"role": "system", "content": SYSTEM_ANSWER},
         {
@@ -315,6 +488,8 @@ def generate_answer(question: str, sql: str, rows: List[Dict[str, Any]]) -> str:
                     "question": question,
                     "sql": sql,
                     "rows": rows,
+                    "time_context": time_context,
+                    "conversation": conversation,
                 }
             ),
         },
@@ -331,9 +506,20 @@ def generate_answer(question: str, sql: str, rows: List[Dict[str, Any]]) -> str:
 # --- Command-line workflow -------------------------------------------------
 
 
-def run(question: str) -> Dict[str, Any]:
-    schema_context = build_schema_context(question)
-    sql_result = generate_sql(question, schema_context)
+def run(
+    question: str,
+    *,
+    conversation: Optional[Sequence[Tuple[str, str]]] = None,
+    time_context: Optional[Dict[str, str]] = None,
+    retries: int = SQL_MAX_RETRIES,
+) -> Dict[str, Any]:
+    schema_context = build_schema_context(question, time_context=time_context)
+    sql_result = generate_sql(
+        question,
+        schema_context,
+        conversation=conversation,
+        time_context=time_context,
+    )
 
     if not sql_result.sql:
         return {
@@ -341,16 +527,48 @@ def run(question: str) -> Dict[str, Any]:
             "message": sql_result.notes or "Model could not generate a query.",
         }
 
-    validated_sql = validate_sql(sql_result.sql)
-    rows = execute_query(validated_sql)
-    answer = generate_answer(question, validated_sql, rows)
+    attempt_sql = validate_sql(sql_result.sql)
 
+    last_error: Optional[Exception] = None
+    for attempt in range(retries + 1):
+        try:
+            rows = execute_query(attempt_sql)
+            answer = generate_answer(
+                question,
+                attempt_sql,
+                rows,
+                time_context=time_context,
+                conversation=conversation,
+            )
+            return {
+                "status": "ok",
+                "sql": attempt_sql,
+                "notes": sql_result.notes,
+                "rows": rows,
+                "answer": answer,
+            }
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            if attempt >= retries:
+                break
+            sql_result = generate_sql(
+                question,
+                schema_context,
+                conversation=conversation,
+                time_context=time_context,
+                previous_sql=attempt_sql,
+                previous_error=str(exc),
+            )
+            if not sql_result.sql:
+                break
+            attempt_sql = validate_sql(sql_result.sql)
+
+    message = "I wasn't able to execute that query successfully. Please try rephrasing."
+    if last_error:
+        message += f" (Error: {last_error})"
     return {
-        "status": "ok",
-        "sql": validated_sql,
-        "notes": sql_result.notes,
-        "rows": rows,
-        "answer": answer,
+        "status": "error",
+        "message": message,
     }
 
 

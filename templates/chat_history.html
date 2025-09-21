@@ -3,34 +3,36 @@
 {% block title %}Chat History | TAS Chat{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    <section class="rounded-lg bg-white p-6 shadow">
+<div class="mx-auto max-w-4xl px-4 py-12">
+    <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-                <h1 class="text-xl font-semibold text-gray-800">Chat History</h1>
-                <p class="text-sm text-gray-500">Review previous conversations and pick one to continue.</p>
+                <h1 class="text-xl font-semibold text-slate-800">Chat History</h1>
+                <p class="text-sm text-slate-500">Review previous conversations and jump back into the ones you care about.</p>
             </div>
-            <button type="button" data-open-new-session class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">New Session</button>
+            <form method="post" action="{{ url_for('new_session') }}">
+                <button type="submit" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">+ New chat</button>
+            </form>
         </div>
 
         <div class="mt-6">
             {% if sessions %}
-                <ul class="divide-y divide-gray-200">
+                <ul class="divide-y divide-slate-200">
                     {% for chat_session in sessions %}
                         <li class="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <p class="text-sm font-medium text-gray-800">{{ chat_session.session_name }}</p>
-                                <p class="text-xs text-gray-500">Created {{ chat_session.created_at }}</p>
+                                <p class="text-sm font-medium text-slate-800">{{ chat_session.session_name }}</p>
+                                <p class="text-xs text-slate-500">Created {{ chat_session.created_at }}</p>
                             </div>
                             <div class="flex items-center gap-2">
-                                <a href="{{ url_for('chat', session_id=chat_session.id) }}" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Open Chat</a>
+                                <a href="{{ url_for('chat', session_id=chat_session.id) }}" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500">Open chat</a>
                             </div>
                         </li>
                     {% endfor %}
                 </ul>
             {% else %}
-                <div class="rounded-md border border-dashed border-gray-300 p-6 text-center">
-                    <p class="text-sm text-gray-500">No chat sessions yet. Start a new one from the menu above.</p>
+                <div class="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
+                    <p class="text-sm text-slate-500">No chat sessions yet. Start a new conversation to populate this list.</p>
                 </div>
             {% endif %}
         </div>

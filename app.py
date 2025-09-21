@@ -4,11 +4,13 @@ import json
 import os
 import sqlite3
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from functools import wraps
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from dotenv import load_dotenv
+# from sql_agent import sql_agent
 
 load_dotenv()
 
@@ -126,6 +128,113 @@ def ensure_message_metadata_column(db: sqlite3.Connection) -> None:
 
 # --- LLM helpers -----------------------------------------------------------
 
+CURRENCY_KEYWORDS = (
+    "amount",
+    "revenue",
+    "fare",
+    "cost",
+    "tariff",
+    "collection",
+    "expense",
+    "value",
+)
+
+
+SMALL_TALK_TRIGGERS = {
+    "greeting": {"hi", "hello", "hey", "good morning", "good evening", "good afternoon"},
+    "gratitude": {"thanks", "thank you", "appreciate"},
+    "status": {"how are", "how's it going"},
+    "time": {"what time", "current time", "time now"},
+}
+
+OUT_OF_SCOPE_KEYWORDS = {
+    "prime minister",
+    "president",
+    "news",
+    "movie",
+    "weather",
+    "stock",
+    "football",
+    "cricket",
+    "politics",
+    "song",
+    "india today",
+    "world",
+    "celebrity",
+}
+
+
+def classify_prompt(text: str) -> Tuple[str, Optional[str]]:
+    value = (text or "").strip().lower()
+    if not value:
+        return "empty", None
+
+    for kind, triggers in SMALL_TALK_TRIGGERS.items():
+        if any(trigger in value for trigger in triggers):
+            return "small_talk", kind
+
+    if any(keyword in value for keyword in OUT_OF_SCOPE_KEYWORDS):
+        return "out_of_scope", None
+
+    return "tas_query", None
+
+
+def build_time_context() -> Dict[str, str]:
+    ist = ZoneInfo("Asia/Kolkata")
+    now = datetime.now(ist)
+    today = now.date()
+    first_of_month = today.replace(day=1)
+    last_month_last_day = first_of_month - timedelta(days=1)
+    last_month_first_day = last_month_last_day.replace(day=1)
+    return {
+        "current_date_ist": today.strftime("%d-%b-%Y"),
+        "current_time_ist": now.strftime("%I:%M %p"),
+        "current_month_start": first_of_month.isoformat(),
+        "last_month_start": last_month_first_day.isoformat(),
+        "last_month_end": last_month_last_day.isoformat(),
+    }
+
+
+def get_recent_messages_for_context(
+    db: sqlite3.Connection,
+    session_id: int,
+    limit: int = 6,
+) -> List[Tuple[str, str]]:
+    rows = db.execute(
+        """
+        SELECT sender, message_text
+        FROM messages
+        WHERE session_id = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+        """,
+        (session_id, limit),
+    ).fetchall()
+    return [(row["sender"], row["message_text"]) for row in reversed(rows)]
+
+
+def respond_small_talk(kind: Optional[str], time_context: Dict[str, str]) -> str:
+    if kind == "gratitude":
+        return "Happy to help! Let me know what TAS insight you’d like to explore next."
+    if kind == "status":
+        return "I’m all set and ready to analyse your TAS data. What can I dig into for you?"
+    if kind == "time":
+        current_time = time_context.get("current_time_ist")
+        current_date = time_context.get("current_date_ist")
+        return f"In India it’s currently {current_time} on {current_date}. What TAS metric should we look at?"
+    # greeting or default
+    return "Hello! I’m TAS Copilot. Ask me about traffic, revenue, exemptions, or costs across your projects."
+
+
+def format_for_metadata(row: Dict[str, Any]) -> Dict[str, Any]:
+    formatted: Dict[str, Any] = {}
+    for key, value in row.items():
+        serialized = make_json_serializable(value)
+        if isinstance(value, (int, float)) and any(token in key.lower() for token in CURRENCY_KEYWORDS):
+            serialized = f"₹{value:,.2f}"
+        formatted[key] = serialized
+    return formatted
+
 
 def format_timestamp_value(value: Optional[str | datetime]) -> str:
     if not value:
@@ -193,8 +302,30 @@ def derive_chart_from_rows(rows: List[Dict[str, Any]]) -> Optional[Dict[str, Any
     }
 
 def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
+    db = get_db()
+    session_id = session.get("current_session_id")
+    conversation = get_recent_messages_for_context(db, session_id) if session_id else []
+    time_context = build_time_context()
+
+    prompt_type, detail = classify_prompt(question)
+    if prompt_type == "empty":
+        return ("Please enter a question so I can help with TAS analytics.", None)
+    if prompt_type == "small_talk":
+        answer = respond_small_talk(detail, time_context)
+        return answer, None
+
+    if prompt_type == "out_of_scope":
+        return (
+            "My knowledge is focused on TAS analytics data. I’m not able to help with that topic.",
+            None,
+        )
+
     try:
-        result = sql_rag_run(question)
+        result = sql_rag_run(
+            question,
+            conversation=conversation,
+            time_context=time_context,
+        )
     except Exception as exc:  # noqa: BLE001
         app.logger.exception("SQL RAG execution failed: %s", exc)
         return (
@@ -211,7 +342,7 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
 
     serializable_rows: List[Dict[str, Any]] = []
     for row in rows:
-        serializable_rows.append({k: make_json_serializable(v) for k, v in row.items()})
+        serializable_rows.append(format_for_metadata(row))
 
     metadata: Dict[str, Any] = {}
     if serializable_rows:
@@ -280,6 +411,50 @@ def create_message(
         "timestamp": timestamp.isoformat(),
         "formatted_timestamp": format_timestamp_value(timestamp),
         "metadata": metadata,
+    }
+
+
+def get_current_user(db: sqlite3.Connection) -> Optional[sqlite3.Row]:
+    return db.execute(
+        "SELECT id, username, password, full_name FROM users WHERE id = ?",
+        (session["user_id"],),
+    ).fetchone()
+
+
+def update_profile_record(
+    db: sqlite3.Connection,
+    user_row: sqlite3.Row,
+    full_name: str,
+    username: str,
+    password: str,
+    confirm_password: str,
+) -> Tuple[bool, str, Dict[str, Any]]:
+    if not username:
+        return False, "Username cannot be empty.", {}
+
+    existing = db.execute(
+        "SELECT id FROM users WHERE username = ? AND id != ?",
+        (username, user_row["id"]),
+    ).fetchone()
+    if existing:
+        return False, "Username is already taken.", {}
+
+    if password and password != confirm_password:
+        return False, "Passwords do not match.", {}
+
+    new_password = password if password else user_row["password"]
+    db.execute(
+        "UPDATE users SET username = ?, password = ?, full_name = ? WHERE id = ?",
+        (username, new_password, full_name or None, user_row["id"]),
+    )
+    db.commit()
+
+    session["username"] = username
+    session["full_name"] = full_name or None
+
+    return True, "Profile updated successfully.", {
+        "username": username,
+        "full_name": full_name or "",
     }
 
 
@@ -379,6 +554,19 @@ def chat():
 
     session["current_session_id"] = current_session_id
 
+    sessions_rows = db.execute(
+        """
+        SELECT id, session_name, created_at
+        FROM chat_sessions
+        ORDER BY created_at DESC
+        """
+    ).fetchall()
+
+    sessions_payload = [
+        {"id": row["id"], "session_name": row["session_name"]}
+        for row in sessions_rows
+    ]
+
     messages = db.execute(
         """
         SELECT id, session_id, sender, message_text, timestamp, metadata
@@ -395,6 +583,8 @@ def chat():
         selected_session=selected_session,
         messages=messages,
         messages_data=messages_data,
+        sessions=sessions_payload,
+        sessions_payload=sessions_payload,
     )
 
 
@@ -497,10 +687,7 @@ def api_send_message():
 @login_required
 def profile():
     db = get_db()
-    user = db.execute(
-        "SELECT id, username, password, full_name FROM users WHERE id = ?",
-        (session["user_id"],),
-    ).fetchone()
+    user = get_current_user(db)
 
     if user is None:
         abort(404)
@@ -511,33 +698,19 @@ def profile():
         password = request.form.get("password", "")
         confirm_password = request.form.get("confirm_password", "")
 
-        if not username:
-            flash("Username cannot be empty.", "error")
-            return redirect(url_for("profile"))
-
-        existing = db.execute(
-            "SELECT id FROM users WHERE username = ? AND id != ?",
-            (username, user["id"]),
-        ).fetchone()
-        if existing:
-            flash("Username is already taken.", "error")
-            return redirect(url_for("profile"))
-
-        if password and password != confirm_password:
-            flash("Passwords do not match.", "error")
-            return redirect(url_for("profile"))
-
-        new_password = password if password else user["password"]
-        db.execute(
-            "UPDATE users SET username = ?, password = ?, full_name = ? WHERE id = ?",
-            (username, new_password, full_name or None, user["id"]),
+        ok, message, updated = update_profile_record(
+            db,
+            user,
+            full_name,
+            username,
+            password,
+            confirm_password,
         )
-        db.commit()
 
-        session["username"] = username
-        session["full_name"] = full_name or None
+        flash(message, "success" if ok else "error")
+        if ok:
+            return redirect(url_for("profile"))
 
-        flash("Profile updated successfully.", "success")
         return redirect(url_for("profile"))
 
     return render_template(
@@ -547,6 +720,43 @@ def profile():
             "full_name": user["full_name"] or "",
         },
     )
+
+
+@app.route("/api/profile", methods=["GET", "POST"])
+@login_required
+def profile_api():
+    db = get_db()
+    user = get_current_user(db)
+    if user is None:
+        abort(404)
+
+    if request.method == "GET":
+        return jsonify(
+            {
+                "username": user["username"],
+                "full_name": user["full_name"] or "",
+            }
+        )
+
+    data = request.get_json(silent=True) or {}
+    full_name = (data.get("full_name") or "").strip()
+    username = (data.get("username") or "").strip()
+    password = data.get("password") or ""
+    confirm_password = data.get("confirm_password") or ""
+
+    ok, message, payload = update_profile_record(
+        db,
+        user,
+        full_name,
+        username,
+        password,
+        confirm_password,
+    )
+
+    if not ok:
+        return jsonify({"status": "error", "message": message}), 400
+
+    return jsonify({"status": "ok", "message": message, "user": payload})
 
 
 @app.route("/chat-history")

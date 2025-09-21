@@ -2,104 +2,262 @@
 
 {% block title %}Chat | TAS Chat{% endblock %}
 
-{% block main_class %}pt-6 pb-0{% endblock %}
-
 {% block content %}
 <div
-    x-data='chatComponent({{ messages_data|tojson|safe }}, {{ selected_session.id }})'
+    x-data='chatComponent({{ messages_data|tojson|safe }}, {{ selected_session.id }}, {{ sessions_payload|tojson|safe }}, {{ username|tojson }}, {{ (full_name or username)|tojson }})'
     x-init="init()"
-    class="space-y-6"
+    class="relative flex h-screen w-full overflow-hidden bg-[#f5f7fa]"
 >
-    <section class="flex flex-col rounded-lg bg-white shadow min-h-[calc(100vh-6rem)]">
-        <header class="border-b border-gray-200 px-6 py-4">
-            <div class="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-                <div>
-                    <h1 class="text-lg font-semibold text-gray-800">{{ selected_session.session_name }}</h1>
-                    <p class="text-sm text-gray-500">Use the menu above to start a new session or browse chat history.</p>
+    <!-- Sidebar -->
+    <aside
+        class="absolute inset-y-0 left-0 z-40 w-72 transform border-r border-slate-200 bg-white transition-transform duration-200 md:static md:translate-x-0"
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+    >
+        <div class="flex h-full flex-col">
+            <div class="flex items-center gap-3 px-5 py-2">
+                <img src="{{ url_for('static', filename='img/interise_logo.png') }}" alt="Interise" class="h-12 w-full">
+            </div>
+
+            <div class="px-5">
+                <form method="post" action="{{ url_for('new_session') }}" class="my-2">
+                    <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
+                        <span class="text-lg leading-none">+</span>
+                        New chat
+                    </button>
+                </form>
+            </div>
+
+            <div class="mt-4 flex-1 overflow-y-auto px-3">
+                <p class="px-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Chats</p>
+                <div class="mt-2 space-y-1">
+                    {% for chat_session in sessions %}
+                        <a
+                            href="{{ url_for('chat', session_id=chat_session.id) }}"
+                            class="group block rounded-lg px-3 py-2 text-sm transition hover:bg-slate-100 hover:text-slate-900"
+                            :class="{{ chat_session.id }} === sessionId ? 'bg-slate-200 text-slate-900' : 'text-slate-600'"
+                            @click="sidebarOpen = false"
+                        >
+                            <div class="flex items-center justify-between gap-3">
+                                <span class="truncate">{{ chat_session.session_name }}</span>
+                                <svg class="h-4 w-4 opacity-0 transition group-hover:opacity-100" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10.75 4.75a.75.75 0 0 0-1.5 0v5.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 0-1.5h-4.75v-4.75Z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </a>
+                    {% else %}
+                        <p class="px-3 py-6 text-xs text-slate-500">No chats yet. Start a new conversation.</p>
+                    {% endfor %}
                 </div>
-                <button type="button" data-open-new-session class="hidden rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 md:inline-flex">New Session</button>
+            </div>
+
+            <div class="relative mt-auto border-t border-slate-200 px-4 py-2" x-data="{ open: false }" @click.outside="open = false">
+                <button type="button" class="flex w-full items-center gap-3 rounded-xl bg-slate-100 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-200" @click="open = !open">
+                    <div class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white text-sm font-semibold">
+                        {{ (full_name or username or 'U')[0]|upper }}
+                    </div>
+                    <div class="flex-1">
+                        <p class="font-medium">{{ full_name or username }}</p>
+                        <p class="text-xs text-slate-500">{{ username }}</p>
+                    </div>
+                    <svg class="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.086l3.71-3.856a.75.75 0 111.08 1.04l-4.24 4.4a.75.75 0 01-1.08 0l-4.24-4.4a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <div x-show="open" x-transition.origin.bottom class="absolute inset-x-4 bottom-16 space-y-1 rounded-xl border border-slate-200 bg-white p-2 text-sm shadow-lg">
+                    <button type="button" class="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-slate-600 transition hover:bg-slate-100" @click="open = false; openProfileModal()">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 15 0A17.933 17.933 0 0 1 12 21.75c-2.663 0-5.187-.582-7.5-1.632Z"/></svg>
+                        <span>Profile</span>
+                    </button>
+                    <a href="{{ url_for('logout') }}" class="flex items-center gap-2 rounded-lg px-2 py-2 text-slate-600 transition hover:bg-slate-100">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6A2.25 2.25 0 0 0 5.25 5.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"/></svg>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="fixed inset-0 z-30 bg-black/40 md:hidden" x-show="sidebarOpen" x-transition.opacity @click="sidebarOpen = false"></div>
+
+    <!-- Main chat area -->
+    <div class="flex flex-1 flex-col bg-[#f5f7fa]">
+        <header class="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4">
+            <div class="flex items-center gap-3">
+                <button type="button" class="rounded-lg border border-slate-200 p-2 text-slate-600 transition hover:bg-slate-100 md:hidden" @click="sidebarOpen = true">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+                </button>
+                <div>
+                    <p class="text-sm font-semibold text-slate-700">TAS Copilot</p>
+                    <p class="text-xs text-slate-500">Interise analytics assistant</p>
+                </div>
             </div>
         </header>
-        <div x-ref="chatContainer" class="flex-1 overflow-y-auto px-6 py-6">
-            <template x-if="messages.length === 0">
-                <p class="text-sm text-gray-500">No messages yet. Say hello!</p>
-            </template>
-            <template x-for="msg in messages" :key="msg.id">
-                <div class="flex mb-5" :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'">
-                    <div class="max-w-xl rounded-2xl px-4 py-3 text-sm shadow-sm" :class="msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'">
-                        <p class="whitespace-pre-wrap" x-text="msg.message_text"></p>
-                        <template x-if="msg.metadata && msg.metadata.rows && msg.metadata.rows.length">
-                            <div class="mt-3 overflow-x-auto rounded-md bg-white/80 p-3 text-gray-800">
-                                <table class="min-w-full text-xs">
-                                    <thead>
-                                        <tr>
-                                            <template x-for="column in msg.metadata.columns" :key="column">
-                                                <th class="px-2 py-1 text-left font-semibold text-gray-600" x-text="column"></th>
-                                            </template>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <template x-for="(row, rowIndex) in msg.metadata.rows" :key="rowIndex">
-                                            <tr class="border-t border-gray-200">
+
+        <main class="flex-1 overflow-y-auto">
+            <div class="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-10">
+                <template x-if="messages.length === 0">
+                    <section class="mt-20 text-center text-slate-500">
+                        <p class="text-3xl font-semibold text-slate-700">Ready when you are.</p>
+                        <p class="mt-2 text-sm">Ask anything about revenue, traffic, exemptions, or costs.</p>
+                    </section>
+                </template>
+
+                <template x-for="msg in messages" :key="msg.id">
+                    <article class="rounded-2xl border border-slate-200 bg-white px-6 py-6 shadow-sm">
+                        <div class="flex items-center gap-3 text-sm text-slate-500">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-full" :class="msg.sender === 'user' ? 'bg-blue-600 text-white' : 'bg-emerald-100 text-emerald-600'">
+                                <span x-text="msg.sender === 'user' ? userInitial : 'AI'"></span>
+                            </div>
+                            <span class="font-semibold text-slate-700" x-text="msg.sender === 'user' ? displayName : 'TAS Copilot'"></span>
+                            <span class="text-xs" x-text="msg.formatted_timestamp"></span>
+                        </div>
+                        <div class="mt-4 space-y-4 text-sm leading-relaxed text-slate-800">
+                            <template x-if="msg.metadata && msg.metadata.chart">
+                                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                                    <canvas :id="`chart-${msg.id}`" class="h-64 w-full"></canvas>
+                                </div>
+                            </template>
+                            <template x-if="msg.metadata && msg.metadata.rows && msg.metadata.rows.length">
+                                <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                                    <table class="min-w-full divide-y divide-slate-200 text-xs">
+                                        <thead class="bg-slate-50 text-slate-600">
+                                            <tr>
                                                 <template x-for="column in msg.metadata.columns" :key="column">
-                                                    <td class="px-2 py-1 text-gray-700" x-text="row[column] !== null && row[column] !== undefined ? row[column] : '—'"></td>
+                                                    <th class="px-3 py-2 text-left font-medium" x-text="column"></th>
                                                 </template>
                                             </tr>
-                                        </template>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </template>
-                        <template x-if="msg.metadata && msg.metadata.chart">
-                            <div class="mt-4 h-64">
-                                <canvas :id="`chart-${msg.id}`" class="h-full w-full"></canvas>
-                            </div>
-                        </template>
-                        <span class="mt-2 block text-xs opacity-70" x-text="msg.formatted_timestamp"></span>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            <template x-for="(row, rowIndex) in msg.metadata.rows" :key="rowIndex">
+                                                <tr>
+                                                    <template x-for="column in msg.metadata.columns" :key="column">
+                                                        <td class="px-3 py-2 text-slate-700" x-text="row[column] ?? '—'"></td>
+                                                    </template>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </template>
+                            <p class="whitespace-pre-wrap" :class="msg.pending ? 'italic text-slate-400' : ''" x-text="msg.message_text"></p>
+                        </div>
+                    </article>
+                </template>
+            </div>
+        </main>
+
+        <footer class="border-t border-slate-200 bg-white px-4 py-4">
+            <div class="mx-auto max-w-3xl space-y-3 text-center text-xs text-slate-500">
+                <form @submit.prevent="send" action="{{ url_for('send_message') }}" method="post" class="flex items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 shadow-lg">
+                    <input type="hidden" name="session_id" value="{{ selected_session.id }}" :value="sessionId">
+                    <textarea
+                        name="message"
+                        x-model="messageText"
+                        x-ref="chatInput"
+                        rows="1"
+                        placeholder="Ask anything..."
+                        class="flex-1 resize-none bg-transparent text-base leading-6 text-slate-800 placeholder:text-slate-400 outline-none"
+                        style="min-height: 1.75rem;"
+                        @keydown.enter="if (!$event.shiftKey) { $event.preventDefault(); send(); }"
+                        required
+                    ></textarea>
+                    <button type="submit" class="flex items-center justify-center rounded-full bg-blue-600 p-2 text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-blue-400" :disabled="isSending">
+                        <svg x-show="!isSending" class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="m4.5 19.5 15-7.5-15-7.5v6.375l10.5 1.125-10.5 1.125V19.5Z"/></svg>
+                        <svg x-show="isSending" x-cloak class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="9" stroke-opacity="0.25"></circle>
+                            <path d="M12 3a9 9 0 0 1 9 9" stroke-linecap="round"></path>
+                        </svg>
+                    </button>
+                </form>
+                <p>Answers may use live SQL against your analytics warehouse.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Profile modal -->
+    <div x-show="profileModalOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+        <div class="absolute inset-0" @click="closeProfileModal()"></div>
+        <div class="relative z-10 w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-slate-800">Account settings</h2>
+                <button type="button" class="rounded-full p-1 text-slate-500 hover:bg-slate-100" @click="closeProfileModal()">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <p class="text-sm text-slate-500">Update your display information or change login credentials.</p>
+            <div x-show="profileError" class="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600" x-text="profileError"></div>
+            <div x-show="profileFeedback" class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-600" x-text="profileFeedback"></div>
+            <form class="mt-6 space-y-4" @submit.prevent="saveProfile()">
+                <div>
+                    <label for="profile-full-name" class="mb-1 block text-sm font-medium text-slate-700">Display name</label>
+                    <input id="profile-full-name" type="text" x-model="profileForm.full_name" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Your name">
+                </div>
+                <div>
+                    <label for="profile-username" class="mb-1 block text-sm font-medium text-slate-700">Username</label>
+                    <input id="profile-username" type="text" x-model="profileForm.username" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="profile-password" class="mb-1 block text-sm font-medium text-slate-700">New password</label>
+                        <input id="profile-password" type="password" x-model="profileForm.password" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Leave blank to keep current">
+                    </div>
+                    <div>
+                        <label for="profile-confirm" class="mb-1 block text-sm font-medium text-slate-700">Confirm password</label>
+                        <input id="profile-confirm" type="password" x-model="profileForm.confirm_password" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Repeat new password">
                     </div>
                 </div>
-            </template>
-        </div>
-        <footer class="border-t border-gray-200 px-6 py-4">
-            <form @submit.prevent="send" action="{{ url_for('send_message') }}" method="post" class="flex flex-col gap-3 md:flex-row">
-                <input type="hidden" name="session_id" value="{{ selected_session.id }}" :value="sessionId">
-                <textarea
-                    name="message"
-                    x-model="messageText"
-                    x-ref="chatInput"
-                    rows="2"
-                    placeholder="Ask something..."
-                    required
-                    class="w-full resize-none rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    @keydown.enter="if (!$event.shiftKey) { $event.preventDefault(); send(); }"
-                ></textarea>
-                <button
-                    type="submit"
-                    class="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                    :class="isSending ? 'cursor-not-allowed opacity-70' : ''"
-                    :disabled="isSending"
-                >
-                    <span x-show="!isSending" x-cloak>Send</span>
-                    <span x-show="isSending" x-cloak>Sending...</span>
-                </button>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100" @click="closeProfileModal()">Cancel</button>
+                    <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-blue-400" :disabled="profileSaving">
+                        <span x-show="!profileSaving">Save changes</span>
+                        <span x-show="profileSaving">Saving...</span>
+                    </button>
+                </div>
             </form>
-        </footer>
-    </section>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
     document.addEventListener('alpine:init', () => {
-        Alpine.data('chatComponent', (initialMessages, sessionId) => ({
+        Alpine.data('chatComponent', (initialMessages, sessionId, sessionList, userName, displayName) => ({
             messages: initialMessages,
-            sessionId,
+            sessionId: Number(sessionId),
+            sessions: sessionList,
+            userName,
+            displayName,
+            get userInitial() {
+                const fromDisplay = (this.displayName || '').trim();
+                if (fromDisplay) {
+                    return fromDisplay.charAt(0).toUpperCase();
+                }
+                const fromUser = (this.userName || '').trim();
+                return fromUser ? fromUser.charAt(0).toUpperCase() : 'U';
+            },
             messageText: '',
             isSending: false,
+            sidebarOpen: false,
             renderedCharts: {},
+            profileModalOpen: false,
+            profileForm: {
+                full_name: displayName,
+                username: userName,
+                password: '',
+                confirm_password: ''
+            },
+            profileSaving: false,
+            profileError: '',
+            profileFeedback: '',
+            pendingUserId: null,
+            pendingAiId: null,
             init() {
                 this.$watch('messages', () => {
-                    this.$nextTick(() => this.renderCharts());
+                    this.$nextTick(() => {
+                        this.renderCharts();
+                        this.scrollToBottom();
+                    });
                 });
                 this.$nextTick(() => {
                     this.scrollToBottom();
@@ -133,6 +291,8 @@
                             return;
                         }
                         const ctx = canvas.getContext('2d');
+                        const axisColor = '#4b5563';
+                        const datasetColor = chartConfig.color || '#2563eb';
                         this.renderedCharts[canvasId] = new Chart(ctx, {
                             type: chartConfig.type || 'bar',
                             data: {
@@ -141,8 +301,8 @@
                                     {
                                         label: chartConfig.label || 'Value',
                                         data: chartConfig.data,
-                                        backgroundColor: '#2563eb',
-                                        borderRadius: 4,
+                                        backgroundColor: datasetColor,
+                                        borderRadius: 6,
                                     },
                                 ],
                             },
@@ -150,15 +310,12 @@
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 plugins: {
-                                    legend: {
-                                        position: 'top',
-                                    },
+                                    legend: { position: 'top', labels: { color: axisColor } }
                                 },
                                 scales: {
-                                    y: {
-                                        beginAtZero: true,
-                                    },
-                                },
+                                    x: { ticks: { color: axisColor }, grid: { display: false } },
+                                    y: { ticks: { color: axisColor }, beginAtZero: true }
+                                }
                             },
                         });
                     });
@@ -171,6 +328,33 @@
                 }
 
                 this.isSending = true;
+
+                const timestamp = new Date();
+                const tempId = Date.now();
+                const localUserMessage = {
+                    id: `temp-user-${tempId}`,
+                    sender: 'user',
+                    message_text: text,
+                    formatted_timestamp: timestamp.toLocaleString(),
+                    metadata: null,
+                };
+                const placeholderAiMessage = {
+                    id: `temp-ai-${tempId}`,
+                    sender: 'ai',
+                    message_text: 'Waiting for response…',
+                    formatted_timestamp: '',
+                    metadata: null,
+                    pending: true,
+                };
+
+                this.pendingUserId = localUserMessage.id;
+                this.pendingAiId = placeholderAiMessage.id;
+
+                this.messages.push(localUserMessage);
+                this.messages.push(placeholderAiMessage);
+                this.messageText = '';
+
+                this.$nextTick(() => this.scrollToBottom());
 
                 try {
                     const response = await fetch('{{ url_for("api_send_message") }}', {
@@ -187,8 +371,27 @@
                         throw new Error(data.error || 'Failed to send message');
                     }
 
-                    data.messages.forEach((msg) => this.messages.push(msg));
-                    this.messageText = '';
+                    if (Array.isArray(data.messages)) {
+                        data.messages.forEach((msg) => {
+                            const normalizedId = msg.id != null ? String(msg.id) : undefined;
+                            const targetId = msg.sender === 'user' ? this.pendingUserId : this.pendingAiId;
+                            const index = targetId
+                                ? this.messages.findIndex((m) => String(m.id) === targetId)
+                                : -1;
+                            const messagePayload = {
+                                ...msg,
+                                id: normalizedId ?? msg.id,
+                                pending: false,
+                            };
+                            if (index !== -1) {
+                                this.messages.splice(index, 1, messagePayload);
+                            } else if (!this.messages.some((m) => String(m.id) === (normalizedId ?? ''))) {
+                                this.messages.push(messagePayload);
+                            }
+                        });
+                    }
+                    this.pendingUserId = null;
+                    this.pendingAiId = null;
 
                     this.$nextTick(() => {
                         this.scrollToBottom();
@@ -203,6 +406,53 @@
                     window.location.reload();
                 } finally {
                     this.isSending = false;
+                }
+            },
+            openProfileModal() {
+                this.profileForm.full_name = this.displayName || '';
+                this.profileForm.username = this.userName || '';
+                this.profileForm.password = '';
+                this.profileForm.confirm_password = '';
+                this.profileError = '';
+                this.profileFeedback = '';
+                this.profileModalOpen = true;
+                this.$nextTick(() => {
+                    const input = document.getElementById('profile-full-name');
+                    if (input) input.focus();
+                });
+            },
+            closeProfileModal() {
+                this.profileModalOpen = false;
+            },
+            async saveProfile() {
+                if (this.profileSaving) return;
+                this.profileSaving = true;
+                this.profileError = '';
+                this.profileFeedback = '';
+                try {
+                    const response = await fetch('{{ url_for("profile_api") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify(this.profileForm),
+                    });
+                    const data = await response.json();
+                    if (!response.ok || data.status !== 'ok') {
+                        throw new Error(data.message || 'Failed to update profile');
+                    }
+                    this.displayName = data.user.full_name || data.user.username;
+                    this.userName = data.user.username;
+                    this.profileFeedback = data.message || 'Profile updated.';
+                    setTimeout(() => {
+                        this.profileModalOpen = false;
+                        this.profileFeedback = '';
+                    }, 1200);
+                } catch (error) {
+                    this.profileError = error.message || 'Unable to update profile right now.';
+                } finally {
+                    this.profileSaving = false;
                 }
             },
         }));

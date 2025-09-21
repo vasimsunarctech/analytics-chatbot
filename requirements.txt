@@ -2,3 +2,8 @@ flask
 openai
 python-dotenv
 pyodbc
+langchain 
+langgraph
+langchain-community
+langchain-ollama
+tabulate
