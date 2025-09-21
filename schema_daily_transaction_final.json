@@ -1,0 +1,37 @@
+{
+  "database": "proddb",
+  "tables": [
+    {
+      "schema": "dbo",
+      "name": "daily_transaction_final",
+      "type": "BASE TABLE",
+      "description": "Granular toll lane transactions captured from TMS after final validation per journey.",
+      "columns": [
+        {"name": "ihmcl_plaza_id", "data_type": "nvarchar", "is_nullable": true, "description": "Unique plaza identifier issued by IHMCL"},
+        {"name": "project_name", "data_type": "nvarchar", "is_nullable": true, "description": "Project / SPV name associated with the plaza"},
+        {"name": "plaza_name", "data_type": "nvarchar", "is_nullable": true, "description": "Toll plaza name"},
+        {"name": "final_journey_sub_type", "data_type": "nvarchar", "is_nullable": true, "description": "Journey subtype after final classification (e.g. entry, exit)"},
+        {"name": "final_journey_type", "data_type": "nvarchar", "is_nullable": true, "description": "Journey type bucket after final classification (one-way, return, exemption etc.)"},
+        {"name": "incident_action_description", "data_type": "nvarchar", "is_nullable": true, "description": "Incident/exception notes captured by lane operator"},
+        {"name": "payment_type", "data_type": "nvarchar", "is_nullable": true, "description": "Payment mode (FASTag, cash, smart card, etc.)"},
+        {"name": "exemption_category", "data_type": "nvarchar", "is_nullable": true, "description": "Exemption class if the journey was exempted"},
+        {"name": "display_class_charged", "data_type": "nvarchar", "is_nullable": true, "description": "Class shown on lane device for charged vehicle"},
+        {"name": "display_class_expected", "data_type": "nvarchar", "is_nullable": true, "description": "Expected class from toll rules for the vehicle"},
+        {"name": "lane_direction", "data_type": "nvarchar", "is_nullable": true, "description": "Traffic direction of the lane (inbound/outbound)"},
+        {"name": "lane_side", "data_type": "nvarchar", "is_nullable": true, "description": "Lane physical side (left/right/center)"},
+        {"name": "shift_id", "data_type": "nvarchar", "is_nullable": true, "description": "Operational shift identifier"},
+        {"name": "transaction_date_time", "data_type": "datetime", "is_nullable": true, "description": "Timestamp when the transaction was recorded (IST)"},
+        {"name": "traffic_count", "data_type": "bigint", "is_nullable": true, "description": "Number of vehicles for this record (typically 1)"},
+        {"name": "expected_amount", "data_type": "bigint", "is_nullable": true, "description": "System-calculated toll amount expected for the journey"},
+        {"name": "collected_fare_tms", "data_type": "numeric", "is_nullable": true, "description": "Actual fare collected as per TMS"},
+        {"name": "transaction_type", "data_type": "nvarchar", "is_nullable": true, "description": "Transaction outcome (charged, exempted, refunded, etc.)"},
+        {"name": "pcu_traffic_charged", "data_type": "float", "is_nullable": true, "description": "Charged traffic converted to Passenger Car Units"},
+        {"name": "pcu_traffic_expected", "data_type": "float", "is_nullable": true, "description": "Expected traffic in Passenger Car Units"},
+        {"name": "expected_class_id", "data_type": "nvarchar", "is_nullable": true, "description": "Identifier for expected vehicle class"},
+        {"name": "insertion_date", "data_type": "datetime", "is_nullable": true, "description": "Timestamp when the record was ingested into warehouse"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    }
+  ]
+}

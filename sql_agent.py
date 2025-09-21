@@ -1,72 +1,123 @@
-from langchain_community.utilities import SQLDatabase 
-from config import ENV
-from typing_extensions import TypedDict, Annotated
-from langchain_ollama import ChatOllama
-from langchain_core.prompts import ChatPromptTemplate 
-from langchain_community.tools.sql_database.tool import QuerySQLDatabaseTool
-from langgraph.graph import START , StateGraph , END
+from __future__ import annotations
+
 import json
-import pyodbc
 import os
+import re
 import time
-from tabulate import tabulate
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-# os.environ["OLLAMA_NO_GPU"] = "1"
-# ____DATABASE_____
+import pyodbc
+from dotenv import load_dotenv
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_ollama import ChatOllama
 
-DRIVER = ENV.MSSQL_DRIVER
-SERVER = ENV.MSSQL_SERVER
-DATABASE = ENV.MSSQL_DATABASE
-TRUST = ENV.MSSQL_TRUST
+load_dotenv()
 
+SCHEMA_PATH = Path(os.environ.get("SQL_SCHEMA_PATH", "schema.json"))
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "phi3:3.8b")
+OLLAMA_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 
-conn_str = (
-    f"DRIVER={DRIVER};"
-    f"SERVER={SERVER};"
-    f"DATABASE={DATABASE};"
-    f"Trusted_Connection={TRUST};"
+MSSQL_DRIVER = os.environ.get("MSSQL_DRIVER", "{ODBC Driver 17 for SQL Server}")
+MSSQL_SERVER = os.environ.get("SQL_SERVER", "localhost")
+MSSQL_DATABASE = os.environ.get("SQL_DATABASE", "master")
+MSSQL_USERNAME = os.environ.get("DB_USERNAME")
+MSSQL_PASSWORD = os.environ.get("DB_PASSWORD")
+MSSQL_TRUST = os.environ.get("MSSQL_TRUST", "yes")
+
+CONNECTION_STRING = (
+    f"DRIVER={MSSQL_DRIVER};"
+    f"SERVER={MSSQL_SERVER};"
+    f"DATABASE={MSSQL_DATABASE};"
+    + (
+        f"UID={MSSQL_USERNAME};PWD={MSSQL_PASSWORD};"
+        if MSSQL_USERNAME and MSSQL_PASSWORD
+        else "Trusted_Connection=yes;"
+    )
 )
 
-# Schema cache
-_MAX_SCHEMA_AGE = 60  # seconds
-_schema_cache = {"schema": {}, "ts": 0}
+SCHEMA_CACHE_SECONDS = int(os.environ.get("SQL_AGENT_SCHEMA_CACHE", "300"))
+
+_TABLE_HINTS: List[Dict[str, Any]] = [
+    {
+        "table": "daily_transaction_final",
+        "keywords": [
+            "traffic",
+            "revenue",
+            "collection",
+            "journey",
+            "lane",
+            "pcu",
+        ],
+    },
+    {
+        "table": "Exemption Data",
+        "keywords": ["exemption", "wim", "refund"],
+    },
+    {
+        "table": "Cost of Operation Master",
+        "keywords": ["cost", "opex", "maintenance", "saving"],
+    },
+    {
+        "table": "Total Revenue Master",
+        "keywords": ["plan", "planned", "tariff", "revenue"],
+    },
+    {
+        "table": "Budget_Traffic",
+        "keywords": ["budget", "traffic", "plan"],
+    },
+    {
+        "table": "Budget Head report",
+        "keywords": ["budget", "head", "plan"],
+    },
+    {
+        "table": "daily_transaction_mtd_ytd",
+        "keywords": ["mtd", "ytd", "qtd"],
+    },
+    {
+        "table": "Force Majeure 1",
+        "keywords": ["force majeure", "claim", "days", "covid"],
+    },
+]
+
+_schema_cache: Dict[str, Any] = {"timestamp": 0.0, "tables": {}}
+
+llm = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_URL, temperature=0.0)
 
 
-def get_db():
-    """Get a new DB connection."""
-    try:
-        conn = pyodbc.connect(conn_str)
-        print("✅ Connected to SQL Server!")
-        return conn
-    except Exception as e:
-        print("❌ DB Connection Error:", str(e))
-        raise
+# ---------------------------------------------------------------------------
+# Schema helpers
+# ---------------------------------------------------------------------------
 
-def get_schema(table_names):
-    """
-    Get schema for one or more tables using pyodbc.
-    Returns formatted schema(s) in tabular format.
-    """
+def load_schema() -> Dict[str, Any]:
+    if not SCHEMA_PATH.exists():
+        raise FileNotFoundError(f"Schema file not found: {SCHEMA_PATH}")
+    return json.loads(SCHEMA_PATH.read_text())
 
-    if isinstance(table_names, str):
-        table_names = [table_names]  # make it iterable
 
-    formatted_schemas = []
-    conn = get_db()
-    cursor = conn.cursor()
-    now = time.time()
+def select_relevant_tables(question: str, max_tables: int = 6) -> List[str]:
+    question_lower = question.lower()
+    scored: List[Tuple[int, str]] = []
+    for hint in _TABLE_HINTS:
+        score = sum(1 for kw in hint["keywords"] if kw in question_lower)
+        if score > 0:
+            scored.append((score, hint["table"]))
+    scored.sort(reverse=True)
+    ordered: List[str] = []
+    seen: set[str] = set()
+    for score, table in scored:
+        if table not in seen:
+            ordered.append(table)
+            seen.add(table)
+        if len(ordered) >= max_tables:
+            break
+    return ordered
 
-    for table_name in table_names:
-        print("get_schema for", table_name)
 
-        if (
-            table_name in _schema_cache["schema"]
-            and (now - _schema_cache["ts"] < _MAX_SCHEMA_AGE)
-        ):
-            formatted_schemas.append(_schema_cache["schema"][table_name])
-            continue
-
-        # Get columns
+def _fetch_table_schema_from_db(table_name: str) -> str:
+    with pyodbc.connect(CONNECTION_STRING) as conn:
+        cursor = conn.cursor()
         cursor.execute(
             """
             SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT
@@ -78,7 +129,9 @@ def get_schema(table_names):
         )
         columns = cursor.fetchall()
 
-        # Primary keys
+        if not columns:
+            return f"No schema found for table '{table_name}'."
+
         cursor.execute(
             """
             SELECT KU.COLUMN_NAME
@@ -89,162 +142,172 @@ def get_schema(table_names):
             """,
             table_name,
         )
-        pk_cols = [row.COLUMN_NAME for row in cursor.fetchall()]
+        pk_cols = {row.COLUMN_NAME for row in cursor.fetchall()}
 
-        # Foreign keys
-        cursor.execute(
-            """
-            SELECT 
-                fk_col.name AS FK_column,
-                pk_tab.name AS PK_table,
-                pk_col.name AS PK_column
-            FROM sys.foreign_keys fk
-            INNER JOIN sys.foreign_key_columns fkc 
-                ON fkc.constraint_object_id = fk.object_id
-            INNER JOIN sys.tables fk_tab 
-                ON fk_tab.object_id = fkc.parent_object_id
-            INNER JOIN sys.columns fk_col 
-                ON fkc.parent_object_id = fk_col.object_id 
-                AND fkc.parent_column_id = fk_col.column_id
-            INNER JOIN sys.tables pk_tab 
-                ON pk_tab.object_id = fkc.referenced_object_id
-            INNER JOIN sys.columns pk_col 
-                ON fkc.referenced_object_id = pk_col.object_id 
-                AND fkc.referenced_column_id = pk_col.column_id
-            WHERE fk_tab.name = ?
-            """,
-            table_name,
-        )
-        fk_list = [
-            f"{row.FK_column} → {row.PK_table}.{row.PK_column}"
-            for row in cursor.fetchall()
-        ]
-
-        # Format schema
-        column_data = []
+        lines = [f"Table {table_name} columns:"]
         for col in columns:
-            column_data.append({
-                "Column Name": col.COLUMN_NAME,
-                "Data Type": col.DATA_TYPE,
-                "Nullable": col.IS_NULLABLE,
-                "Default": col.COLUMN_DEFAULT if col.COLUMN_DEFAULT else "None",
-                "Primary Key": "✔" if col.COLUMN_NAME in pk_cols else "",
-            })
-
-        schema_output = tabulate(column_data, headers="keys", tablefmt="grid")
-        fk_output = "\nForeign Keys: " + ", ".join(fk_list) if fk_list else ""
-
-        formatted_schema = f"Schema for '{table_name}' table:\n{schema_output}{fk_output}"
-
-        _schema_cache["schema"][table_name] = formatted_schema
-        _schema_cache["ts"] = now
-
-        formatted_schemas.append(formatted_schema)
-
-    cursor.close()
-    conn.close()
-
-    # Join multiple schemas together
-    return "\n\n".join(formatted_schemas)
-
-# _______SQL_AGENT____
-class State(TypedDict):
-    user_query: str
-    table_name : str
-    schema: str
-    reasoning: str
-    sql: str
-    results: str
+            default = col.COLUMN_DEFAULT if col.COLUMN_DEFAULT is not None else "None"
+            pk_marker = " PK" if col.COLUMN_NAME in pk_cols else ""
+            lines.append(
+                f"  - {col.COLUMN_NAME} ({col.DATA_TYPE}, nullable={col.IS_NULLABLE}, default={default}){pk_marker}"
+            )
+        return "\n".join(lines)
 
 
-llm = ChatOllama(model=ENV.OLLAMA_MODEL,base_url=ENV.OLLAMA_URL, temperature=0)
+def build_schema_context(question: str) -> str:
+    now = time.time()
+    cache_ok = now - _schema_cache["timestamp"] < SCHEMA_CACHE_SECONDS
 
-# "mssql+pyodbc://<servername>/<dbname>?driver=ODBC+Driver+18+for+SQL+Server&Trusted_connection=yes"
-conn = f"mssql+pyodbc://{ENV.MSSQL_SERVER}/{ENV.MSSQL_DATABASE}?driver=ODBC+Driver+17+for+SQL+Server&Trusted_connection={ENV.MSSQL_TRUST}"
+    table_names = select_relevant_tables(question)
+    if not table_names:
+        table_names = ["daily_transaction_final"]
 
-db = SQLDatabase.from_uri(conn)
+    context_lines: List[str] = []
+    for table in table_names:
+        if cache_ok and table in _schema_cache["tables"]:
+            schema_text = _schema_cache["tables"][table]
+        else:
+            schema_text = _fetch_table_schema_from_db(table)
+            _schema_cache["tables"][table] = schema_text
+            _schema_cache["timestamp"] = now
+        context_lines.append(schema_text)
 
-# print(get_schema("revenue"))
-
-query_tool = QuerySQLDatabaseTool(db=db)
+    return "\n\n".join(context_lines)
 
 
-table_detect_prompt = ChatPromptTemplate.from_messages([
-   ("system", 
-     "You are a database assistant. "
-     "The database has two tables: revenue and sells. And both tables has relationships."
-     "Your task: extract ONLY the table name from the user query. "
-     "Respond strictly in JSON format like this: {{\"table\": \"<table_name>\"}} OR if you want more than one table Respond like this {{\"table\":\"[<table_names>]\"}}"),
-    ("human", "User Query: {user_query}")
-])
+# ---------------------------------------------------------------------------
+# SQL generation and execution
+# ---------------------------------------------------------------------------
 
-reasoning_prompt = ChatPromptTemplate.from_messages([
-    ("system", 
-     "You are a helpful assistant that explains how to answer a SQL question."
-     "When user query contain name of place or name of a person, then always prefer name columns over id columns (because you cant geuss the id which not provided to you)"
+def validate_sql(sql: str) -> str:
+    cleaned = sql.strip().rstrip(";")
+    if not cleaned.lower().startswith("select"):
+        raise ValueError("Only SELECT statements are permitted.")
+    forbidden = re.compile(
+        r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE|MERGE|EXEC|GRANT|REVOKE|BEGIN|COMMIT|ROLLBACK)\b",
+        re.IGNORECASE,
+    )
+    if forbidden.search(cleaned):
+        raise ValueError("Detected forbidden keyword in SQL statement.")
+    if cleaned.count(";") > 0:
+        raise ValueError("Multiple SQL statements are not allowed.")
+    return cleaned
+
+
+def execute_sql(sql: str) -> Tuple[List[Dict[str, Any]], List[str]]:
+    with pyodbc.connect(CONNECTION_STRING) as conn:
+        cursor = conn.cursor()
+        cursor.execute(sql)
+        rows = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        data: List[Dict[str, Any]] = []
+        for row in rows:
+            record = {}
+            for idx, value in enumerate(row):
+                record[columns[idx]] = value
+            data.append(record)
+        return data, columns
+
+
+REASONING_PROMPT = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        """You are a senior TAS analytics engineer.\n"
+        "Your job: analyse the schema, reason through the question, then produce SQL.\n"
+        "Rules:\n"
+        "- Only use tables/columns that exist in the schema context.\n"
+        "- If a name has spaces, wrap it in square brackets exactly as shown (e.g., [Cost of Operation Master]).\n"
+        "- If numeric measures are stored as text (nvarchar), convert them using TRY_CONVERT(decimal(18,2), [column]).\n"
+        "- Only aggregate numeric values.\n"
+        "- Prefer project_name over project_code when the user mentions names.\n"
+        "- If data is unavailable, say so instead of guessing.\n"
+        "Respond strictly in JSON with keys: reasoning, sql, notes.\n""",
     ),
-    ("human", "User Query: {user_query}\nSchema:\n{schema}\nExplain step by step reasoning before writing SQL.")
+    (
+        "human",
+        """Schema:\n{schema}\n\n"
+        "Time context:\n{time_context}\n\n"
+        "Recent conversation:\n{conversation}\n\n"
+        "Question:\n{question}""",
+    ),
 ])
 
-sql_prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a SQL generator. Always return only SQL code, nothing else."),
-    ("human", "User Query: {user_query}\nSchema:\n{schema}\nReasoning:\n{reasoning}\nNow write the SQL query.")
-])
 
-def call_table_detect(state: State):
-    print("now detecting the table..")
-    chain = table_detect_prompt | llm
-    resp = chain.invoke({"user_query": state["user_query"]})
-    table = json.loads(resp.content)
-    table_name = table.get("table")
-    return {"table_name": table_name}
+def format_context_list(items: Optional[Sequence[Tuple[str, str]]]) -> str:
+    if not items:
+        return "(none)"
+    lines = []
+    for role, content in items[-6:]:
+        label = "USER" if role == "user" else "ASSISTANT"
+        lines.append(f"{label}: {content}")
+    return "\n".join(lines)
 
-def call_schema(state: State):
-    print("now getting the schema for ",state["table_name"])
-    schema = get_schema(state["table_name"])
-    print(schema)
-    return {"schema": schema}
 
-def call_reasoning(state: State):
-    print("NOW LLM Thinking ...")
-    chain = reasoning_prompt | llm
-    reasoning = chain.invoke({
-        "user_query": state["user_query"],
-        "schema": state["schema"]
-    })
-    print(reasoning)
-    return {"reasoning": reasoning.content}
+@dataclass
+class AgentResult:
+    status: str
+    message: str
+    sql: Optional[str] = None
+    rows: Optional[List[Dict[str, Any]]] = None
+    notes: Optional[str] = None
+    columns: Optional[List[str]] = None
 
-def call_sql(state: State):
-    print("Now LLM making SQL based on User query")
-    chain = sql_prompt | llm
-    sql = chain.invoke({
-        "user_query": state["user_query"],
-        "schema": state["schema"],
-        "reasoning": state["reasoning"]
-    })
-    print(sql)
-    return {"sql": sql.content.strip()}
 
-def call_execute(state: State):
-    print("NOw getting the result from database")
-    result = query_tool.run(state["sql"])
-    print(result)
-    return {"results": result}
+def run_sql_agent(
+    question: str,
+    *,
+    conversation: Optional[Sequence[Tuple[str, str]]] = None,
+    time_context: Optional[Dict[str, str]] = None,
+) -> AgentResult:
+    try:
+        schema_context = build_schema_context(question)
+    except Exception as exc:  # noqa: BLE001
+        return AgentResult(status="error", message=f"Schema lookup failed: {exc}")
 
-# ----- Build Graph -----
-graph = StateGraph(State)
-graph.add_node("detect_table", call_table_detect)
-graph.add_node("get_schema", call_schema)
-graph.add_node("llm_reason", call_reasoning)
-graph.add_node("sql_generate", call_sql)
-graph.add_node("sql_execute", call_execute)
+    time_context_lines = (
+        "\n".join(f"- {k}: {v}" for k, v in (time_context or {}).items())
+        if time_context
+        else "(not provided)"
+    )
 
-graph.add_edge(START, "detect_table")
-graph.add_edge("detect_table", "get_schema")
-graph.add_edge("get_schema", "llm_reason")
-graph.add_edge("llm_reason", "sql_generate")
-graph.add_edge("sql_generate", "sql_execute")
-graph.add_edge("sql_execute", END)
+    conversation_text = format_context_list(conversation)
 
-sql_agent = graph.compile()
+    chain = REASONING_PROMPT | llm
+    response = chain.invoke(
+        {
+            "schema": schema_context,
+            "time_context": time_context_lines,
+            "conversation": conversation_text,
+            "question": question,
+        }
+    )
+
+    try:
+        payload = json.loads(response.content)
+    except json.JSONDecodeError as exc:
+        return AgentResult(status="error", message=f"Could not parse agent response: {exc}")
+
+    sql = payload.get("sql")
+    notes = payload.get("notes", "")
+
+    if not sql:
+        return AgentResult(status="error", message=notes or "Agent did not produce SQL.")
+
+    try:
+        validated_sql = validate_sql(sql)
+    except Exception as exc:  # noqa: BLE001
+        return AgentResult(status="error", message=str(exc), sql=sql, notes=notes)
+
+    try:
+        rows, columns = execute_sql(validated_sql)
+    except Exception as exc:  # noqa: BLE001
+        return AgentResult(status="error", message=str(exc), sql=validated_sql, notes=notes)
+
+    return AgentResult(
+        status="ok",
+        message="ok",
+        sql=validated_sql,
+        rows=rows,
+        notes=notes,
+        columns=columns,
+    )

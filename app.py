@@ -27,7 +27,8 @@ from flask import (
     url_for,
     jsonify,
 )
-from sql_rag import run as sql_rag_run
+from sql_rag import run as sql_rag_run, generate_answer as sql_rag_generate_answer
+from sql_agent import run_sql_agent
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = BASE_DIR / "database.db"
@@ -333,20 +334,36 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
         )
     except Exception as exc:  # noqa: BLE001
         app.logger.exception("SQL RAG execution failed: %s", exc)
-        return (
-            "I couldn't retrieve the requested information right now. Please try again later.",
-            None,
+        result = {"status": "error", "message": str(exc)}
+
+    rows = result.get("rows") if isinstance(result, dict) else None
+    answer = result.get("answer") if isinstance(result, dict) else None
+    sql_used = result.get("sql") if isinstance(result, dict) else None
+    notes = result.get("notes") if isinstance(result, dict) else None
+
+    if result.get("status") != "ok" or not rows:
+        agent = run_sql_agent(
+            question,
+            conversation=conversation,
+            time_context=time_context,
         )
-
-    if result.get("status") != "ok":
-        message = result.get("message") or "I couldn't find data for that just now."
-        return (message, None)
-
-    answer = result.get("answer") or "I hope that helps."
-    rows = result.get("rows") or []
+        if agent.status == "ok" and agent.rows:
+            rows = agent.rows
+            sql_used = agent.sql
+            notes = agent.notes
+            answer = sql_rag_generate_answer(
+                question,
+                sql_used,
+                rows,
+                time_context=time_context,
+                conversation=conversation,
+            )
+        else:
+            message = agent.message or result.get("message") or "I couldn't find data for that just now."
+            return (message, None)
 
     serializable_rows: List[Dict[str, Any]] = []
-    for row in rows:
+    for row in rows or []:
         serializable_rows.append(format_for_metadata(row))
 
     metadata: Dict[str, Any] = {}
@@ -356,8 +373,13 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
         chart = derive_chart_from_rows(rows)
         if chart:
             metadata["chart"] = chart
+    if sql_used:
+        metadata["sql"] = sql_used
+    if notes:
+        metadata["notes"] = notes
 
-    return answer, (metadata or None)
+    final_answer = answer or "I hope that helps."
+    return final_answer, (metadata or None)
 
 
 # --- Message helpers ------------------------------------------------------

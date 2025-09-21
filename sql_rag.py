@@ -26,6 +26,8 @@ SYSTEM_SQL_GEN = os.environ.get(
     "Prefer using TOP 50 to keep result sets manageable unless the user explicitly requests exact counts.\n"
     "Use the provided schema description to pick correct table and column names.\n"
     "When table or column names contain spaces, wrap them in square brackets exactly as shown (e.g., [Cost of Operation Master]). Never invent underscores or abbreviations.\n"
+    "Only aggregate numeric columns. If a numeric amount is stored in a text column (nvarchar), wrap it with TRY_CONVERT(decimal(18,2), [column_name]) before aggregating, and alias the converted column.\n"
+    "If the schema does not contain a requested metric, respond with {\"sql\": null, \"notes\": \"explain the limitation\"} instead of guessing.\n"
     "Return your answer strictly as JSON with the shape {\"sql\": \"...\", \"notes\": \"...\"}.\n"
     "If you cannot generate a safe query respond with {\"sql\": null, \"notes\": \"reason\"}.\n""",
 )
@@ -33,7 +35,7 @@ SYSTEM_ANSWER = os.environ.get(
     "SQL_ANSWER_PROMPT",
     "You are a helpful analyst. Summarise SQL query results for business users concisely, cite totals, highlight trends, and mention limits."
 )
-SCHEMA_PATH = Path(os.environ.get("SQL_SCHEMA_PATH", "schema.json"))
+SCHEMA_PATH = Path(os.getenv("SQL_SCHEMA_PATH", "schema.json"))
 MAX_RESULT_ROWS = int(os.environ.get("SQL_RESULT_LIMIT", "200"))
 SCHEMA_CACHE_SECONDS = int(os.environ.get("SQL_SCHEMA_CACHE_SECONDS", "300"))
 SQL_MAX_RETRIES = int(os.environ.get("SQL_RETRY_ATTEMPTS", "1"))
@@ -565,9 +567,31 @@ def run(
                 break
             attempt_sql = validate_sql(sql_result.sql)
 
-    message = "I wasn't able to execute that query successfully. Please try rephrasing."
+    message = "I wasn't able to execute that query successfully."
     if last_error:
-        message += f" (Error: {last_error})"
+        error_text = str(last_error)
+        if "Invalid column name" in error_text:
+            match = re.search(r"Invalid column name '([^']+)'", error_text)
+            col = match.group(1) if match else "the requested column"
+            message = (
+                f"I could not find column '{col}' in the TAS schema. "
+                "Please check the column name or clarify which metric you need."
+            )
+        elif "Invalid object name" in error_text:
+            match = re.search(r"Invalid object name '([^']+)'", error_text)
+            table = match.group(1) if match else "the requested table"
+            message = (
+                f"The table '{table}' is not available in the TAS warehouse snapshot I can access."
+            )
+        elif "Operand data type" in error_text:
+            message = (
+                "The data for that column is stored as text, so it can’t be summed directly. "
+                "Please try a different metric or request a breakdown without aggregation."
+            )
+        else:
+            message += f" (Error: {error_text})"
+    else:
+        message += " Please try rephrasing."
     return {
         "status": "error",
         "message": message,
