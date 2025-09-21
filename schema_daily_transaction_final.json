@@ -10,25 +10,186 @@
         {"name": "ihmcl_plaza_id", "data_type": "nvarchar", "is_nullable": true, "description": "Unique plaza identifier issued by IHMCL"},
         {"name": "project_name", "data_type": "nvarchar", "is_nullable": true, "description": "Project / SPV name associated with the plaza"},
         {"name": "plaza_name", "data_type": "nvarchar", "is_nullable": true, "description": "Toll plaza name"},
-        {"name": "final_journey_sub_type", "data_type": "nvarchar", "is_nullable": true, "description": "Journey subtype after final classification (e.g. entry, exit)"},
-        {"name": "final_journey_type", "data_type": "nvarchar", "is_nullable": true, "description": "Journey type bucket after final classification (one-way, return, exemption etc.)"},
+        {"name": "final_journey_sub_type", "data_type": "nvarchar", "is_nullable": true, "description": "Journey subtype after final classification (entry, exit, return, etc.)"},
+        {"name": "final_journey_type", "data_type": "nvarchar", "is_nullable": true, "description": "Journey type bucket after final classification (charged, exempted, discounted)"},
         {"name": "incident_action_description", "data_type": "nvarchar", "is_nullable": true, "description": "Incident/exception notes captured by lane operator"},
         {"name": "payment_type", "data_type": "nvarchar", "is_nullable": true, "description": "Payment mode (FASTag, cash, smart card, etc.)"},
         {"name": "exemption_category", "data_type": "nvarchar", "is_nullable": true, "description": "Exemption class if the journey was exempted"},
-        {"name": "display_class_charged", "data_type": "nvarchar", "is_nullable": true, "description": "Class shown on lane device for charged vehicle"},
-        {"name": "display_class_expected", "data_type": "nvarchar", "is_nullable": true, "description": "Expected class from toll rules for the vehicle"},
+        {"name": "display_class_charged", "data_type": "nvarchar", "is_nullable": true, "description": "Vehicle class shown on lane device for the charged journey"},
+        {"name": "display_class_expected", "data_type": "nvarchar", "is_nullable": true, "description": "Vehicle class expected from toll rules"},
         {"name": "lane_direction", "data_type": "nvarchar", "is_nullable": true, "description": "Traffic direction of the lane (inbound/outbound)"},
         {"name": "lane_side", "data_type": "nvarchar", "is_nullable": true, "description": "Lane physical side (left/right/center)"},
         {"name": "shift_id", "data_type": "nvarchar", "is_nullable": true, "description": "Operational shift identifier"},
         {"name": "transaction_date_time", "data_type": "datetime", "is_nullable": true, "description": "Timestamp when the transaction was recorded (IST)"},
-        {"name": "traffic_count", "data_type": "bigint", "is_nullable": true, "description": "Number of vehicles for this record (typically 1)"},
-        {"name": "expected_amount", "data_type": "bigint", "is_nullable": true, "description": "System-calculated toll amount expected for the journey"},
-        {"name": "collected_fare_tms", "data_type": "numeric", "is_nullable": true, "description": "Actual fare collected as per TMS"},
-        {"name": "transaction_type", "data_type": "nvarchar", "is_nullable": true, "description": "Transaction outcome (charged, exempted, refunded, etc.)"},
-        {"name": "pcu_traffic_charged", "data_type": "float", "is_nullable": true, "description": "Charged traffic converted to Passenger Car Units"},
+        {"name": "traffic_count", "data_type": "bigint", "is_nullable": true, "description": "Number of vehicles in this record (typically 1)"},
+        {"name": "expected_amount", "data_type": "bigint", "is_nullable": true, "description": "System-calculated toll amount expected for the journey (INR)"},
+        {"name": "collected_fare_tms", "data_type": "numeric", "is_nullable": true, "description": "Actual fare collected as per TMS (INR)"},
+        {"name": "transaction_type", "data_type": "nvarchar", "is_nullable": true, "description": "Transaction outcome (charged, exemption, refund)"},
+        {"name": "pcu_traffic_charged", "data_type": "float", "is_nullable": true, "description": "Charged traffic converted into Passenger Car Units"},
         {"name": "pcu_traffic_expected", "data_type": "float", "is_nullable": true, "description": "Expected traffic in Passenger Car Units"},
-        {"name": "expected_class_id", "data_type": "nvarchar", "is_nullable": true, "description": "Identifier for expected vehicle class"},
-        {"name": "insertion_date", "data_type": "datetime", "is_nullable": true, "description": "Timestamp when the record was ingested into warehouse"}
+        {"name": "expected_class_id", "data_type": "nvarchar", "is_nullable": true, "description": "Identifier for the expected vehicle class"},
+        {"name": "insertion_date", "data_type": "datetime", "is_nullable": true, "description": "Timestamp when the record was ingested into the warehouse"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Budget_Traffic",
+      "type": "BASE TABLE",
+      "description": "Monthly traffic budgets and plan values for each SPV and vehicle class.",
+      "columns": [
+        {"name": "SPV", "data_type": "nvarchar", "is_nullable": true, "description": "Project / SPV name"},
+        {"name": "Year", "data_type": "int", "is_nullable": true, "description": "Financial year"},
+        {"name": "Month", "data_type": "nvarchar", "is_nullable": true, "description": "Month name"},
+        {"name": "Vehicle Class", "data_type": "nvarchar", "is_nullable": true, "description": "Vehicle class for the budget"},
+        {"name": "Traffic Budgets", "data_type": "numeric", "is_nullable": true, "description": "Planned traffic volume (vehicle count)"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Total Revenue Master",
+      "type": "BASE TABLE",
+      "description": "Master table containing yearly revenue plans and actuals per SPV.",
+      "columns": [
+        {"name": "Project Name", "data_type": "nvarchar", "is_nullable": true, "description": "SPV / project name"},
+        {"name": "Financial Year", "data_type": "nvarchar", "is_nullable": true, "description": "Financial year label (e.g., FY 2023-24)"},
+        {"name": "Planned Revenue", "data_type": "numeric", "is_nullable": true, "description": "Annual planned revenue in INR"},
+        {"name": "Actual Revenue", "data_type": "numeric", "is_nullable": true, "description": "Actual revenue realised in INR"},
+        {"name": "Tariff Growth Plan %", "data_type": "numeric", "is_nullable": true, "description": "Planned tariff growth percentage"},
+        {"name": "Tariff Growth Actual %", "data_type": "numeric", "is_nullable": true, "description": "Actual tariff growth percentage"},
+        {"name": "Traffic Growth Plan %", "data_type": "numeric", "is_nullable": true, "description": "Planned traffic growth percentage"},
+        {"name": "Traffic Growth Actual %", "data_type": "numeric", "is_nullable": true, "description": "Actual traffic growth percentage"},
+        {"name": "Notes", "data_type": "nvarchar", "is_nullable": true, "description": "Additional remarks or assumptions"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Cost of Operation Master",
+      "type": "BASE TABLE",
+      "description": "Operational and maintenance cost plan vs actual by SPV and cost head.",
+      "columns": [
+        {"name": "Project Name", "data_type": "nvarchar", "is_nullable": true, "description": "SPV / project name"},
+        {"name": "Cost Head", "data_type": "nvarchar", "is_nullable": true, "description": "Cost head (tolling, HTMS, utilities, etc.)"},
+        {"name": "Month", "data_type": "nvarchar", "is_nullable": true, "description": "Month label"},
+        {"name": "Opex Plan", "data_type": "numeric", "is_nullable": true, "description": "Monthly OPEX budget in INR"},
+        {"name": "Opex Actual", "data_type": "numeric", "is_nullable": true, "description": "Monthly OPEX actual spend in INR"},
+        {"name": "MMR Plan", "data_type": "numeric", "is_nullable": true, "description": "Major maintenance plan for the month"},
+        {"name": "MMR Actual", "data_type": "numeric", "is_nullable": true, "description": "Major maintenance actual for the month"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Exemption Data",
+      "type": "BASE TABLE",
+      "description": "Detailed log of exempted transactions and associated revenue impact.",
+      "columns": [
+        {"name": "project_name", "data_type": "nvarchar", "is_nullable": true, "description": "SPV / project name"},
+        {"name": "plaza_name", "data_type": "nvarchar", "is_nullable": true, "description": "Plaza name"},
+        {"name": "transaction_date_time", "data_type": "datetime", "is_nullable": true, "description": "Timestamp of the exemption"},
+        {"name": "exemption_category", "data_type": "nvarchar", "is_nullable": true, "description": "Type of exemption"},
+        {"name": "traffic_count", "data_type": "bigint", "is_nullable": true, "description": "Vehicle count for exemption"},
+        {"name": "wim_amount", "data_type": "float", "is_nullable": true, "description": "Weight-in-motion penalty amount (INR)"},
+        {"name": "refund_amount", "data_type": "float", "is_nullable": true, "description": "Amount refunded due to exemption (INR)"},
+        {"name": "reason_text", "data_type": "nvarchar", "is_nullable": true, "description": "Narrative reason for exemption"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Force Majeure 1",
+      "type": "BASE TABLE",
+      "description": "Force majeure claim tracking across approval levels.",
+      "columns": [
+        {"name": "SPV", "data_type": "nvarchar", "is_nullable": true, "description": "SPV name"},
+        {"name": "Month", "data_type": "nvarchar", "is_nullable": true, "description": "Month label"},
+        {"name": "Days Approved", "data_type": "int", "is_nullable": true, "description": "Days approved in the month"},
+        {"name": "Days Recommended", "data_type": "int", "is_nullable": true, "description": "Days recommended to next approval level"},
+        {"name": "Days Disputed", "data_type": "int", "is_nullable": true, "description": "Days/claims taken to dispute"},
+        {"name": "Days Amicable", "data_type": "int", "is_nullable": true, "description": "Days settled amicably"},
+        {"name": "Remarks", "data_type": "nvarchar", "is_nullable": true, "description": "Remarks or valuation considerations"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Accident Report",
+      "type": "BASE TABLE",
+      "description": "Accident and incident counts by severity for safety analytics.",
+      "columns": [
+        {"name": "Report Date", "data_type": "date", "is_nullable": true, "description": "Date of the record"},
+        {"name": "SPV", "data_type": "nvarchar", "is_nullable": true, "description": "SPV name"},
+        {"name": "Severity", "data_type": "nvarchar", "is_nullable": true, "description": "Severity category (Fatal, Major, Minor)"},
+        {"name": "Incident Type", "data_type": "nvarchar", "is_nullable": true, "description": "Type of incident (accident, breakdown, etc.)"},
+        {"name": "Incident Count", "data_type": "int", "is_nullable": true, "description": "Number of incidents"},
+        {"name": "Root Cause", "data_type": "nvarchar", "is_nullable": true, "description": "Primary cause or improvement recorded"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Annual Pass Summary",
+      "type": "BASE TABLE",
+      "description": "Annual pass issuance and revenue impact." ,
+      "columns": [
+        {"name": "As On Date", "data_type": "date", "is_nullable": true, "description": "Snapshot date"},
+        {"name": "SPV", "data_type": "nvarchar", "is_nullable": true, "description": "SPV name"},
+        {"name": "Pass Count", "data_type": "int", "is_nullable": true, "description": "Number of annual passes processed"},
+        {"name": "Impact Amount", "data_type": "numeric", "is_nullable": true, "description": "Revenue impact due to annual passes"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Overload Summary",
+      "type": "BASE TABLE",
+      "description": "Overload vehicle monitoring for NRC/force exemptions.",
+      "columns": [
+        {"name": "Report Date", "data_type": "date", "is_nullable": true, "description": "Date of measurement"},
+        {"name": "SPV", "data_type": "nvarchar", "is_nullable": true, "description": "SPV name"},
+        {"name": "Overload Passed", "data_type": "int", "is_nullable": true, "description": "Number of overload vehicles allowed"},
+        {"name": "Overload Exempted", "data_type": "int", "is_nullable": true, "description": "Number of overload vehicles exempted (NRC/force)"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Fastag Collection",
+      "type": "BASE TABLE",
+      "description": "FASTag collection share and traffic PCU KPIs.",
+      "columns": [
+        {"name": "Report Date", "data_type": "date", "is_nullable": true, "description": "Date of record"},
+        {"name": "SPV", "data_type": "nvarchar", "is_nullable": true, "description": "SPV name"},
+        {"name": "Fastag Collection %", "data_type": "numeric", "is_nullable": true, "description": "Percentage of revenue collected via FASTag"},
+        {"name": "Traffic PCU", "data_type": "float", "is_nullable": true, "description": "Daily PCU traffic"},
+        {"name": "Average Daily Traffic", "data_type": "float", "is_nullable": true, "description": "Average vehicle count per day"}
+      ],
+      "primary_key": [],
+      "foreign_keys": []
+    },
+    {
+      "schema": "dbo",
+      "name": "Traffic Trend Summary",
+      "type": "BASE TABLE",
+      "description": "Daily traffic and revenue trend versus budget benchmarks.",
+      "columns": [
+        {"name": "Report Date", "data_type": "date", "is_nullable": true, "description": "Date of data"},
+        {"name": "SPV", "data_type": "nvarchar", "is_nullable": true, "description": "SPV name"},
+        {"name": "Traffic Actual", "data_type": "float", "is_nullable": true, "description": "Actual traffic for the day"},
+        {"name": "Traffic Budget", "data_type": "float", "is_nullable": true, "description": "Planned traffic for the day"},
+        {"name": "Revenue Actual", "data_type": "float", "is_nullable": true, "description": "Actual revenue for the day"},
+        {"name": "Revenue Budget", "data_type": "float", "is_nullable": true, "description": "Planned revenue for the day"}
       ],
       "primary_key": [],
       "foreign_keys": []

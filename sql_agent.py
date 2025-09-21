@@ -15,7 +15,7 @@ from langchain_ollama import ChatOllama
 
 load_dotenv()
 
-SCHEMA_PATH = Path(os.environ.get("SQL_SCHEMA_PATH", "schema.json"))
+SCHEMA_PATH = Path(os.environ.get("SQL_SCHEMA_PATH", "schema_daily_transaction_final.json"))
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "phi3:3.8b")
 OLLAMA_URL = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434")
 
@@ -57,11 +57,11 @@ _TABLE_HINTS: List[Dict[str, Any]] = [
     },
     {
         "table": "Cost of Operation Master",
-        "keywords": ["cost", "opex", "maintenance", "saving"],
+        "keywords": ["cost", "opex", "maintenance", "saving", "mmr"],
     },
     {
         "table": "Total Revenue Master",
-        "keywords": ["plan", "planned", "tariff", "revenue"],
+        "keywords": ["plan", "planned", "tariff", "revenue", "growth", "yoy"],
     },
     {
         "table": "Budget_Traffic",
@@ -77,7 +77,27 @@ _TABLE_HINTS: List[Dict[str, Any]] = [
     },
     {
         "table": "Force Majeure 1",
-        "keywords": ["force majeure", "claim", "days", "covid"],
+        "keywords": ["force majeure", "claim", "days", "settlement"],
+    },
+    {
+        "table": "Accident Report",
+        "keywords": ["accident", "incident", "fatal", "major", "minor", "root cause", "variance"],
+    },
+    {
+        "table": "Annual Pass Summary",
+        "keywords": ["annual pass", "pass count", "impact"],
+    },
+    {
+        "table": "Overload Summary",
+        "keywords": ["overload", "nrc", "force exemption"],
+    },
+    {
+        "table": "Fastag Collection",
+        "keywords": ["fastag", "pcu", "percentage", "collection"],
+    },
+    {
+        "table": "Traffic Trend Summary",
+        "keywords": ["trend", "budget", "daily", "yesterday"],
     },
 ]
 
@@ -160,7 +180,12 @@ def build_schema_context(question: str) -> str:
 
     table_names = select_relevant_tables(question)
     if not table_names:
-        table_names = ["daily_transaction_final"]
+        table_names = [
+            "daily_transaction_final",
+            "Total Revenue Master",
+            "Cost of Operation Master",
+            "Budget_Traffic"
+        ]
 
     context_lines: List[str] = []
     for table in table_names:
@@ -219,6 +244,7 @@ REASONING_PROMPT = ChatPromptTemplate.from_messages([
         "- If a name has spaces, wrap it in square brackets exactly as shown (e.g., [Cost of Operation Master]).\n"
         "- If numeric measures are stored as text (nvarchar), convert them using TRY_CONVERT(decimal(18,2), [column]).\n"
         "- Only aggregate numeric values.\n"
+        "- Default to the last 12 months using the appropriate date column when no timeframe is supplied. Honour explicit dates when given.\n"
         "- Prefer project_name over project_code when the user mentions names.\n"
         "- If data is unavailable, say so instead of guessing.\n"
         "Respond strictly in JSON with keys: reasoning, sql, notes.\n""",

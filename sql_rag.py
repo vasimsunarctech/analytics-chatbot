@@ -23,10 +23,10 @@ SYSTEM_SQL_GEN = os.environ.get(
     "SQL_SYSTEM_PROMPT",
     """You are an expert SQL assistant for a Microsoft SQL Server data warehouse.\n"
     "Generate only SELECT queries. Never write INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, MERGE, or EXEC statements.\n"
-    "Prefer using TOP 50 to keep result sets manageable unless the user explicitly requests exact counts.\n"
     "Use the provided schema description to pick correct table and column names.\n"
     "When table or column names contain spaces, wrap them in square brackets exactly as shown (e.g., [Cost of Operation Master]). Never invent underscores or abbreviations.\n"
     "Only aggregate numeric columns. If a numeric amount is stored in a text column (nvarchar), wrap it with TRY_CONVERT(decimal(18,2), [column_name]) before aggregating, and alias the converted column.\n"
+    "When the user does not specify a time window, default to the last 12 months using the appropriate date column (for example daily_transaction_final.transaction_date_time). Honour explicit time filters when present.\n"
     "If the schema does not contain a requested metric, respond with {\"sql\": null, \"notes\": \"explain the limitation\"} instead of guessing.\n"
     "Return your answer strictly as JSON with the shape {\"sql\": \"...\", \"notes\": \"...\"}.\n"
     "If you cannot generate a safe query respond with {\"sql\": null, \"notes\": \"reason\"}.\n""",
@@ -35,30 +35,32 @@ SYSTEM_ANSWER = os.environ.get(
     "SQL_ANSWER_PROMPT",
     "You are a helpful analyst. Summarise SQL query results for business users concisely, cite totals, highlight trends, and mention limits."
 )
-SCHEMA_PATH = Path(os.getenv("SQL_SCHEMA_PATH", "schema.json"))
-MAX_RESULT_ROWS = int(os.environ.get("SQL_RESULT_LIMIT", "200"))
+SCHEMA_PATH = Path(os.getenv("SQL_SCHEMA_PATH", "schema_daily_transaction_final.json"))
+MAX_RESULT_ROWS = int(os.environ.get("SQL_RESULT_LIMIT", "1000"))
 SCHEMA_CACHE_SECONDS = int(os.environ.get("SQL_SCHEMA_CACHE_SECONDS", "300"))
 SQL_MAX_RETRIES = int(os.environ.get("SQL_RETRY_ATTEMPTS", "1"))
 
 BUSINESS_GUIDELINES = """
 Terminology guide:
-- "SPV" means project or plaza special purpose vehicle; map to columns like project_name, project_description, Project Name, or Project - Code.
-- Actual toll revenue is typically stored in collected_fare_tms (daily_transaction_* tables) or collected_fare_tms (Exemption Data). Expected or planned revenue is expected_amount or fields in Total Revenue Master / Budget tables.
-- Traffic counts are in traffic_count columns or *_traffic fields (FTD, MTD, QTD, YTD) in daily_transaction_* tables; PCU stands for passenger car units (pcu_traffic_* columns).
-- Budget/plan information lives in Budget_Traffic (Traffic Budgets by SPV, Year, Month) and Budget Head report.
-- Exemption analysis uses Exemption Data (wim_amount, refund_amount, final_wim_amt, exemption_category, etc.).
-- Cost of operations metrics come from Cost of Operation Master (columns like Column26, Revenue Model, etc.) and Total Revenue Master for planned vs actual comparisons.
-- Force Majeure events are recorded in Force Majeure 1 table (affected period, claims, approvals by level).
-- Accident trends use tables containing columns like fatal, major, minor if available; otherwise respond that data is unavailable.
-- Table and column names may contain spaces. Use them exactly as shown and wrap them in square brackets, e.g. [Cost of Operation Master]. Never invent underscores or abbreviations.
+- "SPV" means project or plaza special purpose vehicle; map to columns like project_name or Project Name.
+- Actual toll revenue is stored in collected_fare_tms (daily_transaction_final). Expected or planned revenue is expected_amount or [Total Revenue Master].[Planned Revenue].
+- Traffic counts live in traffic_count / pcu_traffic_* columns. Traffic budgets are in Budget_Traffic.[Traffic Budgets].
+- Cost savings/overruns are derived from Cost of Operation Master (Opex Plan vs Opex Actual, MMR Plan vs MMR Actual).
+- Exemption reasons and financial impact come from Exemption Data (reason_text, wim_amount, refund_amount).
+- Force majeure claims are tracked in [Force Majeure 1] (Days Approved, Days Recommended, Days Disputed, Days Amicable).
+- Safety KPIs use [Accident Report] (Severity, Incident Count, Root Cause).
+- Annual passes, overload exemptions, FASTag adoption live in Annual Pass Summary, Overload Summary, and Fastag Collection.
+- Table/column names may contain spaces; wrap them in square brackets exactly as shown.
+
+Date guidance:
+- If the question lacks an explicit time window, default to the last 12 months using the relevant date column (e.g., daily_transaction_final.transaction_date_time, [Traffic Trend Summary].[Report Date]).
+- Honour explicit month/quarter/year references when provided.
 
 SQL best practices:
-- Always return aggregated results with aliases e.g. SUM(collected_fare_tms) AS total_actual_revenue.
-- When filtering by date phrases like "today" use CAST(transaction_date_time AS DATE) = CAST(GETDATE() AS DATE).
-- For month/year comparisons use DATEFROMPARTS or YEAR(), MONTH() on transaction_date_time.
-- When computing variance use formula (actual - planned) / NULLIF(planned,0) * 100.
-- Always include ORDER BY clauses when returning "top" results and use TOP N.
-- Use only single SELECT statement.
+- Aggregate or summarise results; avoid dumping raw transaction rows.
+- Variance formula: (actual - planned) / NULLIF(planned, 0) * 100.
+- Use TRY_CONVERT for numeric calculations on nvarchar amount columns.
+- Return a single SELECT statement.
 """
 
 TABLE_HINTS: List[Dict[str, Any]] = [
@@ -111,14 +113,29 @@ TABLE_HINTS: List[Dict[str, Any]] = [
         "description": "Vehicle exemptions and revenue adjustments per transaction with wim_amount, refund_amount, final_wim_amt.",
     },
     {
-        "table": "Finance Master",
-        "keywords": ["valuation", "network impact", "finance"],
-        "description": "Finance master data for each project/SPV including revenue model, cluster, concession details.",
+        "table": "Accident Report",
+        "keywords": ["accident", "incident", "fatal", "major", "minor", "safety", "root cause"],
+        "description": "Accident and incident counts by severity with root-cause narratives.",
     },
     {
-        "table": "Route Operation Master",
-        "keywords": ["route", "operation", "network", "impact"],
-        "description": "Operational metadata for each project, including lane counts, models, integrators.",
+        "table": "Annual Pass Summary",
+        "keywords": ["annual pass", "pass count", "impact"],
+        "description": "Annual pass issuance counts and revenue impact snapshots.",
+    },
+    {
+        "table": "Overload Summary",
+        "keywords": ["overload", "nrc", "force exemption", "over weight"],
+        "description": "Overload vehicles processed and exemptions.",
+    },
+    {
+        "table": "Fastag Collection",
+        "keywords": ["fastag", "pcu", "collection", "percentage"],
+        "description": "FASTag adoption percentage and PCU/traffic metrics.",
+    },
+    {
+        "table": "Traffic Trend Summary",
+        "keywords": ["traffic trend", "budget", "daily", "revenue trend", "yesterday"],
+        "description": "Daily traffic and revenue actual vs budget summaries.",
     },
 ]
 
@@ -287,7 +304,16 @@ def build_schema_context(
 
     table_names = select_relevant_tables(question)
 
-    defaults = ["daily_transaction_final", "Budget_Traffic", "Exemption Data"]
+    defaults = [
+        "daily_transaction_final",
+        "Budget_Traffic",
+        "Total Revenue Master",
+        "Cost of Operation Master",
+        "Exemption Data",
+        "Force Majeure 1",
+        "Accident Report",
+        "Traffic Trend Summary"
+    ]
     for default in defaults:
         if default not in table_names:
             table_names.append(default)
