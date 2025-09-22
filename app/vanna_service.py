@@ -27,7 +27,7 @@ def get_vanna():
     # _vn.connect_to_sqlite("tesla_motors_data.db")
     # For SQL Server:
     print(os.getenv("MSSQL_CONN"))
-    _vn.connect_to_mssql(connection_string=os.getenv("MSSQL_CONN"))
+    _vn.connect_to_mssql(odbc_conn_str=os.getenv("MSSQL_CONN"))
 
     try:
         # df_ddl = _vn.run_sql("SELECT type, sql FROM sqlite_master WHERE sql IS NOT NULL")
