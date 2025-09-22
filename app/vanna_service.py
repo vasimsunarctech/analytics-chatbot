@@ -5,12 +5,16 @@ import pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
 class MyVanna(ChromaDB_VectorStore, Ollama):
     def __init__(self, config=None):
         ChromaDB_VectorStore.__init__(self, config=config)
         Ollama.__init__(self, config=config)
 
+
 _vn = None
+
 
 def get_vanna():
     global _vn
@@ -34,6 +38,49 @@ def get_vanna():
         df_information_schema = _vn.run_sql("SELECT * FROM INFORMATION_SCHEMA.COLUMNS")
         plan = _vn.get_training_plan_generic(df_information_schema)
         _vn.train(plan=plan)
+        _vn.train(
+            question="What are the top 5 performing SPVs.",
+            sql="""
+                SELECT TOP (5)
+                    project,
+                    SUM(
+                        CAST(
+                            (COALESCE(cash,0) 
+                            + COALESCE(fastag,0) 
+                            + COALESCE(others,0) 
+                            + COALESCE(overload,0) 
+                            + COALESCE(pass_amount,0)) 
+                            - COALESCE(double_penalty,0)
+                        AS BIGINT)
+                    ) AS revenue,
+                    SUM(CAST(budget AS BIGINT)) AS budget,
+                    ROUND(
+                        (
+                            (
+                                SUM(
+                                    CAST(
+                                        (COALESCE(cash,0) 
+                                        + COALESCE(fastag,0) 
+                                        + COALESCE(others,0) 
+                                        + COALESCE(overload,0) 
+                                        + COALESCE(pass_amount,0)) 
+                                        - COALESCE(double_penalty,0)
+                                    AS BIGINT)
+                                ) 
+                                - SUM(CAST(budget AS BIGINT))
+                            ) 
+                            / NULLIF(SUM(CAST(budget AS BIGINT)), 0.0)
+                        ) * 100.0, 
+                        2
+                    ) AS performance_pct
+                FROM dbo.ods_tmsdata_revenue
+                WHERE [date] >= '2025-09-01 00:00:00'
+                AND [date] <= '2025-09-01 23:59:59'
+                GROUP BY project
+                ORDER BY performance_pct DESC;
+            """,
+        )
+
         # for ddl in df_ddl["sql"].to_list():
         #     _vn.train(ddl=ddl)
     except Exception:
