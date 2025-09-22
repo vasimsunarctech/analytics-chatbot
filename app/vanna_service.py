@@ -2,7 +2,9 @@ import os
 from vanna.ollama import Ollama
 from vanna.chromadb import ChromaDB_VectorStore
 import pandas as pd
+from dotenv import load_dotenv
 
+load_dotenv()
 class MyVanna(ChromaDB_VectorStore, Ollama):
     def __init__(self, config=None):
         ChromaDB_VectorStore.__init__(self, config=config)
@@ -24,6 +26,7 @@ def get_vanna():
     # DB connect (SQLite default)
     # _vn.connect_to_sqlite("tesla_motors_data.db")
     # For SQL Server:
+    print(os.getenv("MSSQL_CONN"))
     _vn.connect_to_mssql(connection_string=os.getenv("MSSQL_CONN"))
 
     try:
