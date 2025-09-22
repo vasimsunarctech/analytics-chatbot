@@ -10,7 +10,7 @@
                 <h1 class="text-xl font-semibold text-slate-800">Chat History</h1>
                 <p class="text-sm text-slate-500">Review previous conversations and jump back into the ones you care about.</p>
             </div>
-            <form method="post" action="{{ url_for('new_session') }}">
+            <form method="post" action="{{ url_for('pages.new_session') }}">
                 <button type="submit" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">+ New chat</button>
             </form>
         </div>
@@ -25,7 +25,7 @@
                                 <p class="text-xs text-slate-500">Created {{ chat_session.created_at }}</p>
                             </div>
                             <div class="flex items-center gap-2">
-                                <a href="{{ url_for('chat', session_id=chat_session.id) }}" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500">Open chat</a>
+                                <a href="{{ url_for('pages.chat', session_id=chat_session.id) }}" class="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500">Open chat</a>
                             </div>
                         </li>
                     {% endfor %}
