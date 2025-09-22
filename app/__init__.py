@@ -2,14 +2,28 @@ from flask import Flask
 from dotenv import load_dotenv
 import os
 import plotly.io as pio
+import logging
+from logging.handlers import RotatingFileHandler
+
 pio.renderers.default = "json"   # or "svg" / "png" if cairosvg etc. set up hai
 
 
 def create_app():
     load_dotenv()
+    
     app = Flask(__name__)
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret")
     app.config["DATABASE"] = os.getenv("DATABASE", "./database.db")
+
+     # Logging setup
+    handler = RotatingFileHandler("logs/app.log", maxBytes=5*1024*1024, backupCount=3)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
+    handler.setFormatter(formatter)
+    app.logger.addHandler(handler)
+
 
     # register internals
     from .db import init_db_command, init_app_db

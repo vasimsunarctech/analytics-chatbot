@@ -1,11 +1,12 @@
 import re
 import math
+import logging
 from flask import Blueprint, request, jsonify, session
 from .db import get_db, create_message
 from .vanna_service import get_vanna
 
 bp = Blueprint("api", __name__)
-
+logger = logging.getLogger("api")
 CODE_FENCE_RE = re.compile(r"^\s*```[a-zA-Z]*\s*|\s*```\s*$", re.MULTILINE)
 
 def clean_sql(sql_text: str) -> str:
@@ -128,7 +129,7 @@ def api_send_message():
 
     # 4) safety LIMIT
     sql_to_run = ensure_limit(sql, 1000)
-
+    logger.info(f"sql_to_run: {sql_to_run}")
     # 5) run + explain
     df = vn.run_sql(sql_to_run)
     # explanation = vn.ask(question=text)
