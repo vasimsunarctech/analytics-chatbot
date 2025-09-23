@@ -5,7 +5,7 @@ import json
 import os
 import re
 import time
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta, time as dt_time
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -154,11 +154,11 @@ def resolve_default_window(keyword: str, today: date) -> Tuple[date, date]:
 
 
 def start_of_day(value: date) -> datetime:
-    return datetime.combine(value, time(0, 0, 0, tzinfo=IST))
+    return datetime.combine(value, dt_time(0, 0, 0, tzinfo=IST))
 
 
 def end_of_day(value: date) -> datetime:
-    return datetime.combine(value, time(23, 59, 59, tzinfo=IST))
+    return datetime.combine(value, dt_time(23, 59, 59, tzinfo=IST))
 
 
 def format_datetime_ist(value: datetime) -> str:
@@ -181,7 +181,7 @@ def _coerce_datetime(value: Optional[str], fallback: datetime) -> datetime:
             try:
                 dt = datetime.strptime(text, fmt)
                 if fmt == "%Y-%m-%d":
-                    dt = datetime.combine(dt.date(), time(0, 0, 0))
+                    dt = datetime.combine(dt.date(), dt_time(0, 0, 0))
                 break
             except ValueError:
                 dt = None
