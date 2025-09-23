@@ -28,6 +28,7 @@ SYSTEM_ANSWER = os.environ.get(
 )
 MAX_RESULT_ROWS = int(os.environ.get("SQL_RESULT_LIMIT", "1000"))
 TEMPLATE_PATH = Path(os.getenv("SQL_TEMPLATE_PATH", "sql_templates.json"))
+SCHEMA_PATH = Path(os.getenv("SQL_SCHEMA_PATH", "schema_daily_transaction_final.json"))
 TEMPLATE_CACHE_SECONDS = int(os.environ.get("SQL_TEMPLATE_CACHE_SECONDS", "120"))
 FISCAL_YEAR_START_MONTH = int(os.environ.get("FISCAL_YEAR_START_MONTH", "4"))
 IST = ZoneInfo("Asia/Kolkata")
@@ -43,6 +44,7 @@ CONNECTION_STRING = (
 client = OpenAI(api_key=OPENAI_API_KEY, base_url=OLLAMA_API_BASE)
 
 _template_cache: Dict[str, Any] = {"timestamp": 0.0, "templates": []}
+DEFAULT_DATE_TEMPLATE: Dict[str, Any] = {"defaults": {"time_window": "current_fiscal_year"}}
 
 
 # --- Template helpers ------------------------------------------------------
@@ -102,21 +104,144 @@ def match_template(question: str, templates: List[Dict[str, Any]]) -> Optional[D
     return best
 
 
-def extract_limit(question: str, template: Dict[str, Any]) -> int:
-    defaults = template.get("defaults", {})
-    limits = template.get("limits", {}).get("limit", {})
-    default_limit = int(defaults.get("limit", 5))
-    min_limit = int(limits.get("min", 1))
-    max_limit = int(limits.get("max", max(default_limit, 10)))
+def extract_limit(question: str, template: Optional[Dict[str, Any]] = None) -> Optional[int]:
+    defaults = template.get("defaults", {}) if template else {}
+    limits_cfg = template.get("limits", {}).get("limit", {}) if template else {}
+
+    limit_default = defaults.get("limit")
 
     match = re.search(r"top\s+(\d+)", question, re.IGNORECASE)
     if match:
         limit = int(match.group(1))
+    elif limit_default is not None:
+        limit = int(limit_default)
     else:
-        limit = default_limit
+        return None
 
-    limit = max(min_limit, min(limit, max_limit))
+    if limits_cfg:
+        if "min" in limits_cfg:
+            limit = max(int(limits_cfg["min"]), limit)
+        if "max" in limits_cfg:
+            limit = min(int(limits_cfg["max"]), limit)
+
     return limit
+
+
+# --- Schema helpers --------------------------------------------------------
+
+
+def load_schema_data() -> Dict[str, Any]:
+    if not SCHEMA_PATH.exists():
+        raise FileNotFoundError(f"Schema file not found: {SCHEMA_PATH}")
+    try:
+        return json.loads(SCHEMA_PATH.read_text())
+    except json.JSONDecodeError as exc:  # noqa: TRY003
+        raise ValueError(f"Could not parse schema file {SCHEMA_PATH}: {exc}") from exc
+
+
+def build_schema_context(limit_tables: int = 12, limit_columns: int = 12) -> str:
+    data = load_schema_data()
+    tables = data.get("tables", [])
+    lines = [f"Database: {data.get('database', 'unknown')}"]
+    for table in tables[:limit_tables]:
+        schema_name = table.get("schema", "dbo")
+        table_name = table.get("name", "unknown")
+        cols = table.get("columns", [])
+        column_parts: List[str] = []
+        for column in cols[:limit_columns]:
+            column_parts.append(f"{column.get('name')} ({column.get('data_type')})")
+        if len(cols) > limit_columns:
+            column_parts.append("...")
+        column_text = ", ".join(column_parts)
+        lines.append(f"- {schema_name}.{table_name} -> {column_text}")
+    if len(tables) > limit_tables:
+        lines.append("(schema truncated)")
+    return "\n".join(lines)
+
+
+def format_conversation_history(
+    conversation: Optional[Sequence[Tuple[str, str]]],
+) -> str:
+    if not conversation:
+        return "(none)"
+    lines = []
+    for role, message in conversation[-6:]:
+        label = "USER" if role == "user" else "ASSISTANT"
+        lines.append(f"{label}: {message}")
+    return "\n".join(lines)
+
+
+FALLBACK_SQL_SYSTEM_PROMPT = (
+    "You are a senior TAS analytics SQL assistant for Microsoft SQL Server.\n"
+    "Rules:\n"
+    "- Produce exactly one SELECT statement.\n"
+    "- Never write INSERT, UPDATE, DELETE, DROP, ALTER, or temporary table statements.\n"
+    "- Use table and column names exactly as provided; wrap identifiers containing spaces in square brackets.\n"
+    "- Prefer aggregated answers and include ORDER BY when using TOP.\n"
+    "- Return your response strictly as JSON with keys: sql, notes.\n"
+)
+
+
+def generate_sql_from_schema(
+    question: str,
+    start_datetime: str,
+    end_datetime: str,
+    limit: Optional[int],
+    conversation: Optional[Sequence[Tuple[str, str]]],
+) -> Dict[str, Any]:
+    try:
+        schema_context = build_schema_context()
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "message": f"Schema load failed: {exc}"}
+
+    conversation_text = format_conversation_history(conversation)
+    limit_hint = str(limit) if limit is not None else "none"
+    if limit is not None:
+        limit_guideline = (
+            f"- If the user requested top/bottom results, apply TOP {limit} with an ORDER BY that matches the KPI direction.\n"
+        )
+    else:
+        limit_guideline = (
+            "- Only introduce TOP when the user explicitly asks for top/bottom results.\n"
+        )
+
+    user_content = (
+        f"Schema:\n{schema_context}\n\n"
+        f"Date window (IST):\n- start_datetime: {start_datetime}\n- end_datetime: {end_datetime}\n\n"
+        f"Limit hint: {limit_hint}\n\n"
+        f"Recent conversation:\n{conversation_text}\n\n"
+        "Guidelines:\n"
+        "- Constrain the query between the given datetimes using the appropriate date column(s).\n"
+        "  • For dbo.ods_tmsdata_revenue use [date].\n"
+        "  • For dbo.daily_transaction_final use transaction_date_time.\n"
+        "- Honour explicit SPV/plaza filters from the user.\n"
+        f"{limit_guideline}"
+        "- Use TRY_CONVERT when aggregating numeric values stored as text.\n\n"
+        f"Question:\n{question}"
+    )
+
+    try:
+        response = client.chat.completions.create(
+            model=OLLAMA_MODEL,
+            temperature=0.0,
+            messages=[
+                {"role": "system", "content": FALLBACK_SQL_SYSTEM_PROMPT},
+                {"role": "user", "content": user_content},
+            ],
+        )
+        raw = response.choices[0].message.content.strip()
+        payload_text = _strip_json_block(raw)
+        payload = json.loads(payload_text)
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "message": f"Could not generate SQL: {exc}"}
+
+    sql = payload.get("sql")
+    notes = payload.get("notes", "")
+
+    if not sql or not isinstance(sql, str):
+        return {"status": "error", "message": "Model did not return a SQL statement."}
+
+    return {"status": "ok", "sql": sql, "notes": notes}
 
 
 def fiscal_year_range(value: date, delta: int = 0) -> Tuple[date, date]:
@@ -362,18 +487,13 @@ def run(
         }
 
     template = match_template(question, templates)
-    if template is None:
-        return {
-            "status": "error",
-            "message": "I do not yet have a SQL mapped for that request.",
-        }
-
     limit = extract_limit(question, template)
 
     current_dt = datetime.now(IST)
+    date_template = template if template else DEFAULT_DATE_TEMPLATE
     start_dt, end_dt = resolve_date_range_with_llm(
         question,
-        template,
+        date_template,
         current_dt=current_dt,
     )
 
@@ -390,32 +510,53 @@ def run(
     previous_start_datetime = format_datetime_ist(previous_start_dt)
     previous_end_datetime = format_datetime_ist(previous_end_dt)
 
-    try:
-        format_params = {
-            "limit": limit,
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-            "start_datetime": start_datetime,
-            "end_datetime": end_datetime,
-            "previous_start_date": previous_start_date.isoformat(),
-            "previous_end_date": previous_end_date.isoformat(),
-            "previous_start_datetime": previous_start_datetime,
-            "previous_end_datetime": previous_end_datetime,
-        }
-        sql = template["sql_template"].format(**format_params)
-    except KeyError as exc:
-        return {
-            "status": "error",
-            "message": f"Template '{template.get('id')}' is missing placeholder {exc}.",
-        }
+    if template is None:
+        fallback = generate_sql_from_schema(
+            question,
+            start_datetime,
+            end_datetime,
+            limit,
+            conversation,
+        )
+        if fallback.get("status") != "ok":
+            return fallback
+        sql_text = fallback["sql"]
+        template_id = "fallback_schema"
+        notes_hint = fallback.get("notes", "")
+    else:
+        if "{limit}" in template.get("sql_template", "") and limit is None:
+            return {
+                "status": "error",
+                "message": f"Template '{template.get('id')}' requires a limit value.",
+            }
+        try:
+            format_params = {
+                "limit": limit,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "start_datetime": start_datetime,
+                "end_datetime": end_datetime,
+                "previous_start_date": previous_start_date.isoformat(),
+                "previous_end_date": previous_end_date.isoformat(),
+                "previous_start_datetime": previous_start_datetime,
+                "previous_end_datetime": previous_end_datetime,
+            }
+            sql_text = template["sql_template"].format(**format_params)
+        except KeyError as exc:
+            return {
+                "status": "error",
+                "message": f"Template '{template.get('id')}' is missing placeholder {exc}.",
+            }
+        template_id = template.get("id", "template")
+        notes_hint = ""
 
     try:
-        validated_sql = validate_sql(sql)
+        validated_sql = validate_sql(sql_text)
     except Exception as exc:  # noqa: BLE001
         return {
             "status": "error",
             "message": str(exc),
-            "sql": sql,
+            "sql": sql_text,
         }
 
     try:
@@ -428,6 +569,7 @@ def run(
         }
 
     enriched_context = dict(time_context or {})
+    limit_context = str(limit) if limit is not None else ""
     enriched_context.update(
         {
             "resolved_start_date": start_date.isoformat(),
@@ -438,8 +580,9 @@ def run(
             "previous_end_date": previous_end_date.isoformat(),
             "previous_start_datetime": previous_start_datetime,
             "previous_end_datetime": previous_end_datetime,
-            "limit": str(limit),
-            "template_id": template.get("id"),
+            "limit": limit_context,
+            "template_id": template_id,
+            "mode": "fallback" if template is None else "template",
         }
     )
 
@@ -451,17 +594,15 @@ def run(
         conversation=conversation,
     )
 
-    notes = (
-        "template={tid}; limit={limit}; date_range={start_start} to {end_end}; "
-        "previous_range={prev_start} to {prev_end}"
-    ).format(
-        tid=template.get("id"),
-        limit=limit,
-        start_start=start_datetime,
-        end_end=end_datetime,
-        prev_start=previous_start_datetime,
-        prev_end=previous_end_datetime,
-    )
+    notes_parts = [
+        f"template={template_id}",
+        f"limit={limit_context or 'n/a'}",
+        f"date_range={start_datetime} to {end_datetime}",
+        f"previous_range={previous_start_datetime} to {previous_end_datetime}",
+    ]
+    if notes_hint:
+        notes_parts.append(f"details={notes_hint}")
+    notes = "; ".join(notes_parts)
 
     return {
         "status": "ok",
