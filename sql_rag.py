@@ -188,6 +188,9 @@ def generate_sql_from_schema(
     end_datetime: str,
     limit: Optional[int],
     conversation: Optional[Sequence[Tuple[str, str]]],
+    *,
+    previous_sql: Optional[str] = None,
+    previous_error: Optional[str] = None,
 ) -> Dict[str, Any]:
     try:
         schema_context = build_schema_context()
@@ -205,6 +208,16 @@ def generate_sql_from_schema(
             "- Only introduce TOP when the user explicitly asks for top/bottom results.\n"
         )
 
+    previous_section = ""
+    if previous_sql or previous_error:
+        previous_lines = ["Previous attempt:"]
+        if previous_sql:
+            previous_lines.append(f"SQL: {previous_sql}")
+        if previous_error:
+            previous_lines.append(f"Error: {previous_error}")
+        previous_lines.append("Please correct the SQL accordingly.")
+        previous_section = "\n\n" + "\n".join(previous_lines)
+
     user_content = (
         f"Schema:\n{schema_context}\n\n"
         f"Date window (IST):\n- start_datetime: {start_datetime}\n- end_datetime: {end_datetime}\n\n"
@@ -216,8 +229,10 @@ def generate_sql_from_schema(
         "  • For dbo.daily_transaction_final use transaction_date_time.\n"
         "- Honour explicit SPV/plaza filters from the user.\n"
         f"{limit_guideline}"
-        "- Use TRY_CONVERT when aggregating numeric values stored as text.\n\n"
+        "- Use TRY_CONVERT when aggregating numeric values stored as text.\n"
+        "- Return column names that are meaningful for an analyst reading the result.\n\n"
         f"Question:\n{question}"
+        f"{previous_section}"
     )
 
     try:
@@ -510,63 +525,90 @@ def run(
     previous_start_datetime = format_datetime_ist(previous_start_dt)
     previous_end_datetime = format_datetime_ist(previous_end_dt)
 
-    if template is None:
-        fallback = generate_sql_from_schema(
-            question,
-            start_datetime,
-            end_datetime,
-            limit,
-            conversation,
-        )
-        if fallback.get("status") != "ok":
-            return fallback
-        sql_text = fallback["sql"]
-        template_id = "fallback_schema"
-        notes_hint = fallback.get("notes", "")
-    else:
-        if "{limit}" in template.get("sql_template", "") and limit is None:
-            return {
-                "status": "error",
-                "message": f"Template '{template.get('id')}' requires a limit value.",
-            }
+    fallback_mode = template is None
+    fallback_attempts = max(1, retries) if fallback_mode else 0
+    attempt = 0
+    previous_sql = None
+    previous_error = None
+    sql_text = ""
+    template_id = ""
+    notes_hint = ""
+
+    while True:
+        if fallback_mode:
+            fallback = generate_sql_from_schema(
+                question,
+                start_datetime,
+                end_datetime,
+                limit,
+                conversation,
+                previous_sql=previous_sql,
+                previous_error=previous_error,
+            )
+            if fallback.get("status") != "ok":
+                return fallback
+            sql_text = fallback["sql"]
+            template_id = "fallback_schema"
+            notes_hint = fallback.get("notes", "")
+        else:
+            if "{limit}" in template.get("sql_template", "") and limit is None:
+                return {
+                    "status": "error",
+                    "message": f"Template '{template.get('id')}' requires a limit value.",
+                }
+            try:
+                format_params = {
+                    "limit": limit,
+                    "start_date": start_date.isoformat(),
+                    "end_date": end_date.isoformat(),
+                    "start_datetime": start_datetime,
+                    "end_datetime": end_datetime,
+                    "previous_start_date": previous_start_date.isoformat(),
+                    "previous_end_date": previous_end_date.isoformat(),
+                    "previous_start_datetime": previous_start_datetime,
+                    "previous_end_datetime": previous_end_datetime,
+                }
+                sql_text = template["sql_template"].format(**format_params)
+            except KeyError as exc:
+                return {
+                    "status": "error",
+                    "message": f"Template '{template.get('id')}' is missing placeholder {exc}.",
+                }
+            template_id = template.get("id", "template")
+            notes_hint = ""
+
         try:
-            format_params = {
-                "limit": limit,
-                "start_date": start_date.isoformat(),
-                "end_date": end_date.isoformat(),
-                "start_datetime": start_datetime,
-                "end_datetime": end_datetime,
-                "previous_start_date": previous_start_date.isoformat(),
-                "previous_end_date": previous_end_date.isoformat(),
-                "previous_start_datetime": previous_start_datetime,
-                "previous_end_datetime": previous_end_datetime,
-            }
-            sql_text = template["sql_template"].format(**format_params)
-        except KeyError as exc:
+            validated_sql = validate_sql(sql_text)
+        except Exception as exc:  # noqa: BLE001
+            if fallback_mode and attempt < fallback_attempts:
+                previous_sql = sql_text
+                previous_error = str(exc)
+                attempt += 1
+                continue
             return {
                 "status": "error",
-                "message": f"Template '{template.get('id')}' is missing placeholder {exc}.",
+                "message": str(exc),
+                "sql": sql_text,
             }
-        template_id = template.get("id", "template")
-        notes_hint = ""
 
-    try:
-        validated_sql = validate_sql(sql_text)
-    except Exception as exc:  # noqa: BLE001
-        return {
-            "status": "error",
-            "message": str(exc),
-            "sql": sql_text,
-        }
+        try:
+            rows = execute_query(validated_sql)
+            break
+        except Exception as exc:  # noqa: BLE001
+            if fallback_mode and attempt < fallback_attempts:
+                previous_sql = validated_sql
+                previous_error = str(exc)
+                attempt += 1
+                continue
+            return {
+                "status": "error",
+                "message": str(exc),
+                "sql": validated_sql,
+            }
 
-    try:
-        rows = execute_query(validated_sql)
-    except Exception as exc:  # noqa: BLE001
-        return {
-            "status": "error",
-            "message": str(exc),
-            "sql": validated_sql,
-        }
+    # After loop, rows contains result
+
+    validated_sql = validated_sql  # keep scope for below
 
     enriched_context = dict(time_context or {})
     limit_context = str(limit) if limit is not None else ""
