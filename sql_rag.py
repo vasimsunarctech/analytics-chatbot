@@ -139,6 +139,15 @@ def fiscal_year_range(value: date, delta: int = 0) -> Tuple[date, date]:
     return start, end
 
 
+def shift_years(value: date, years: int) -> date:
+    target_year = value.year + years
+    try:
+        return value.replace(year=target_year)
+    except ValueError:
+        last_day = calendar.monthrange(target_year, value.month)[1]
+        return value.replace(year=target_year, day=last_day)
+
+
 def resolve_default_window(keyword: str, today: date) -> Tuple[date, date]:
     key = (keyword or "current_fiscal_year").lower()
     if key == "current_fiscal_year":
@@ -298,12 +307,24 @@ def run(
     start_datetime = f"{start_date.strftime('%Y-%m-%d')} 00:00:00"
     end_datetime = f"{end_date.strftime('%Y-%m-%d')} 23:59:59"
 
+    previous_start_date = shift_years(start_date, -1)
+    previous_end_date = shift_years(end_date, -1)
+    previous_start_datetime = f"{previous_start_date.strftime('%Y-%m-%d')} 00:00:00"
+    previous_end_datetime = f"{previous_end_date.strftime('%Y-%m-%d')} 23:59:59"
+
     try:
-        sql = template["sql_template"].format(
-            limit=limit,
-            start_datetime=start_datetime,
-            end_datetime=end_datetime,
-        )
+        format_params = {
+            "limit": limit,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "start_datetime": start_datetime,
+            "end_datetime": end_datetime,
+            "previous_start_date": previous_start_date.isoformat(),
+            "previous_end_date": previous_end_date.isoformat(),
+            "previous_start_datetime": previous_start_datetime,
+            "previous_end_datetime": previous_end_datetime,
+        }
+        sql = template["sql_template"].format(**format_params)
     except KeyError as exc:
         return {
             "status": "error",
@@ -335,6 +356,10 @@ def run(
             "resolved_end_date": end_date.isoformat(),
             "resolved_start_datetime": start_datetime,
             "resolved_end_datetime": end_datetime,
+            "previous_start_date": previous_start_date.isoformat(),
+            "previous_end_date": previous_end_date.isoformat(),
+            "previous_start_datetime": previous_start_datetime,
+            "previous_end_datetime": previous_end_datetime,
             "limit": str(limit),
             "template_id": template.get("id"),
         }
@@ -349,7 +374,15 @@ def run(
     )
 
     notes = (
-        f"template={template.get('id')}; limit={limit}; date_range={start_datetime} to {end_datetime}"
+        "template={tid}; limit={limit}; date_range={start_start} to {end_end}; "
+        "previous_range={prev_start} to {prev_end}"
+    ).format(
+        tid=template.get("id"),
+        limit=limit,
+        start_start=start_datetime,
+        end_end=end_datetime,
+        prev_start=previous_start_datetime,
+        prev_end=previous_end_datetime,
     )
 
     return {

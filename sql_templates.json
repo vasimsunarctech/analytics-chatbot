@@ -1,6 +1,27 @@
 {
   "templates": [
     {
+      "id": "top_performing_spvs",
+      "description": "Rank SPVs by highest revenue variance versus plan.",
+      "match_phrases": [
+        "top performing spvs",
+        "best performing spvs",
+        "top revenue spvs",
+        "top performing spv"
+      ],
+      "sql_template": "SELECT TOP ({limit})\n    project,\n    SUM(\n        CAST(\n            (COALESCE(cash, 0)\n             + COALESCE(fastag, 0)\n             + COALESCE(others, 0)\n             + COALESCE(overload, 0)\n             + COALESCE(pass_amount, 0))\n            - COALESCE(double_penalty, 0)\n        AS BIGINT)\n    ) AS revenue,\n    SUM(CAST(budget AS BIGINT)) AS budget,\n    ROUND(\n        (\n            (\n                SUM(\n                    CAST(\n                        (COALESCE(cash, 0)\n                         + COALESCE(fastag, 0)\n                         + COALESCE(others, 0)\n                         + COALESCE(overload, 0)\n                         + COALESCE(pass_amount, 0))\n                        - COALESCE(double_penalty, 0)\n                    AS BIGINT)\n                )\n                - SUM(CAST(budget AS BIGINT))\n            )\n            / NULLIF(SUM(CAST(budget AS BIGINT)), 0.0)\n        ) * 100.0,\n        2\n    ) AS performance_pct\nFROM dbo.ods_tmsdata_revenue\nWHERE [date] >= '{start_datetime}'\n  AND [date] <= '{end_datetime}'\nGROUP BY project\nORDER BY performance_pct DESC;",
+      "defaults": {
+        "limit": 5,
+        "time_window": "current_fiscal_year"
+      },
+      "limits": {
+        "limit": {
+          "min": 1,
+          "max": 50
+        }
+      }
+    },
+    {
       "id": "top_non_performing_spvs",
       "description": "Identify SPVs with the weakest revenue performance versus plan, sorted by lowest variance.",
       "match_phrases": [
@@ -8,7 +29,9 @@
         "non performing spvs",
         "non-performing spvs",
         "non performing spv",
-        "non-performing spv"
+        "non-performing spv",
+        "worst performing spvs",
+        "bottom performing spvs"
       ],
       "sql_template": "SELECT TOP ({limit})\n    project,\n    SUM(\n        CAST(\n            (COALESCE(cash, 0)\n             + COALESCE(fastag, 0)\n             + COALESCE(others, 0)\n             + COALESCE(overload, 0)\n             + COALESCE(pass_amount, 0))\n            - COALESCE(double_penalty, 0)\n        AS BIGINT)\n    ) AS revenue,\n    SUM(CAST(budget AS BIGINT)) AS budget,\n    ROUND(\n        (\n            (\n                SUM(\n                    CAST(\n                        (COALESCE(cash, 0)\n                         + COALESCE(fastag, 0)\n                         + COALESCE(others, 0)\n                         + COALESCE(overload, 0)\n                         + COALESCE(pass_amount, 0))\n                        - COALESCE(double_penalty, 0)\n                    AS BIGINT)\n                )\n                - SUM(CAST(budget AS BIGINT))\n            )\n            / NULLIF(SUM(CAST(budget AS BIGINT)), 0.0)\n        ) * 100.0,\n        2\n    ) AS performance_pct\nFROM dbo.ods_tmsdata_revenue\nWHERE [date] >= '{start_datetime}'\n  AND [date] <= '{end_datetime}'\nGROUP BY project\nORDER BY performance_pct ASC;",
       "defaults": {
@@ -20,6 +43,90 @@
           "min": 1,
           "max": 50
         }
+      }
+    },
+    {
+      "id": "yearly_revenue_plan",
+      "description": "Summarise planned revenue by project and plaza for the fiscal window.",
+      "match_phrases": [
+        "yearly plan of revenue",
+        "yearly revenue plan",
+        "annual revenue plan",
+        "plan of revenue collection"
+      ],
+      "sql_template": "SELECT\n    project,\n    plaza,\n    SUM(CAST(budget AS BIGINT)) AS yearly_plan\nFROM dbo.ods_tmsdata_revenue\nWHERE [date] >= '{start_datetime}'\n  AND [date] <= '{end_datetime}'\nGROUP BY project, plaza\nORDER BY yearly_plan DESC;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
+      }
+    },
+    {
+      "id": "top_high_exemption_spvs",
+      "description": "List SPVs with the highest exemption percentage over the selected window.",
+      "match_phrases": [
+        "top higher exemption spvs",
+        "higher exemption spvs",
+        "highest exemption spvs",
+        "top exemption spvs"
+      ],
+      "sql_template": "SELECT TOP ({limit})\n    project_name,\n    SUM(CASE WHEN final_journey_type IN ('Exemption', 'Exempt - Forced Free') THEN COALESCE(traffic_count, 0) ELSE 0 END) AS exempt_traffic,\n    SUM(COALESCE(traffic_count, 0)) AS total_traffic,\n    ROUND(\n        (SUM(CASE WHEN final_journey_type IN ('Exemption', 'Exempt - Forced Free') THEN COALESCE(traffic_count, 0) ELSE 0 END) * 100.0)\n        / NULLIF(SUM(COALESCE(traffic_count, 0)) * 1.0, 0),\n        2\n    ) AS exemption_pct\nFROM dbo.daily_transaction_final\nWHERE transaction_date_time >= '{start_datetime}'\n  AND transaction_date_time <= '{end_datetime}'\nGROUP BY project_name\nHAVING SUM(COALESCE(traffic_count, 0)) > 0\nORDER BY exemption_pct DESC;",
+      "defaults": {
+        "limit": 5,
+        "time_window": "current_fiscal_year"
+      },
+      "limits": {
+        "limit": {
+          "min": 1,
+          "max": 50
+        }
+      }
+    },
+    {
+      "id": "top_low_exemption_spvs",
+      "description": "List SPVs with the lowest exemption percentage over the selected window.",
+      "match_phrases": [
+        "top lower exemption spvs",
+        "lower exemption spvs",
+        "lowest exemption spvs",
+        "least exemption spvs"
+      ],
+      "sql_template": "SELECT TOP ({limit})\n    project_name,\n    SUM(CASE WHEN final_journey_type IN ('Exemption', 'Exempt - Forced Free') THEN COALESCE(traffic_count, 0) ELSE 0 END) AS exempt_traffic,\n    SUM(COALESCE(traffic_count, 0)) AS total_traffic,\n    ROUND(\n        (SUM(CASE WHEN final_journey_type IN ('Exemption', 'Exempt - Forced Free') THEN COALESCE(traffic_count, 0) ELSE 0 END) * 100.0)\n        / NULLIF(SUM(COALESCE(traffic_count, 0)) * 1.0, 0),\n        2\n    ) AS exemption_pct\nFROM dbo.daily_transaction_final\nWHERE transaction_date_time >= '{start_datetime}'\n  AND transaction_date_time <= '{end_datetime}'\nGROUP BY project_name\nHAVING SUM(COALESCE(traffic_count, 0)) > 0\nORDER BY exemption_pct ASC;",
+      "defaults": {
+        "limit": 5,
+        "time_window": "current_fiscal_year"
+      },
+      "limits": {
+        "limit": {
+          "min": 1,
+          "max": 50
+        }
+      }
+    },
+    {
+      "id": "exemption_yoy_comparison",
+      "description": "Compare exemption share year-over-year for each SPV.",
+      "match_phrases": [
+        "comparison of exemption yoy",
+        "exemption yoy",
+        "exemption year over year",
+        "yoy exemption comparison"
+      ],
+      "sql_template": "WITH aggregates AS (\n    SELECT\n        project_name,\n        SUM(CASE WHEN transaction_date_time >= '{start_datetime}' AND transaction_date_time <= '{end_datetime}' THEN COALESCE(traffic_count, 0) ELSE 0 END) AS curr_total,\n        SUM(CASE WHEN transaction_date_time >= '{start_datetime}' AND transaction_date_time <= '{end_datetime}'\n                 AND final_journey_type IN ('Exemption', 'Exempt - Forced Free') THEN COALESCE(traffic_count, 0) ELSE 0 END) AS curr_exempt,\n        SUM(CASE WHEN transaction_date_time >= '{previous_start_datetime}' AND transaction_date_time <= '{previous_end_datetime}' THEN COALESCE(traffic_count, 0) ELSE 0 END) AS prev_total,\n        SUM(CASE WHEN transaction_date_time >= '{previous_start_datetime}' AND transaction_date_time <= '{previous_end_datetime}'\n                 AND final_journey_type IN ('Exemption', 'Exempt - Forced Free') THEN COALESCE(traffic_count, 0) ELSE 0 END) AS prev_exempt\n    FROM dbo.daily_transaction_final\n    WHERE transaction_date_time >= '{previous_start_datetime}'\n      AND transaction_date_time <= '{end_datetime}'\n    GROUP BY project_name\n)\nSELECT\n    project_name,\n    ROUND(COALESCE(CAST(curr_total AS DECIMAL(18, 2)), 0), 0) AS total_traffic_current_year,\n    ROUND(COALESCE(CAST(curr_exempt AS DECIMAL(18, 2)), 0), 0) AS exemption_traffic_current_year,\n    ROUND(COALESCE(CAST(prev_total AS DECIMAL(18, 2)), 0), 0) AS total_traffic_previous_year,\n    ROUND(COALESCE(CAST(prev_exempt AS DECIMAL(18, 2)), 0), 0) AS exemption_traffic_previous_year,\n    COALESCE(\n        ROUND(\n            ((curr_exempt * 100.0) / NULLIF(curr_total, 0))\n            - ((prev_exempt * 100.0) / NULLIF(prev_total, 0)),\n            2\n        ),\n        0\n    ) AS yoy_change_pct\nFROM aggregates\nORDER BY yoy_change_pct DESC;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
+      }
+    },
+    {
+      "id": "traffic_yoy_variance",
+      "description": "Calculate year-over-year traffic growth percentage for each SPV.",
+      "match_phrases": [
+        "traffic growth yoy",
+        "traffic yoy variance",
+        "traffic year over year",
+        "traffic yoy change"
+      ],
+      "sql_template": "WITH aggregates AS (\n    SELECT\n        project_name,\n        SUM(CASE WHEN transaction_date_time >= '{start_datetime}' AND transaction_date_time <= '{end_datetime}' THEN COALESCE(traffic_count, 0) ELSE 0 END) AS curr_total,\n        SUM(CASE WHEN transaction_date_time >= '{previous_start_datetime}' AND transaction_date_time <= '{previous_end_datetime}' THEN COALESCE(traffic_count, 0) ELSE 0 END) AS prev_total\n    FROM dbo.daily_transaction_final\n    WHERE transaction_date_time >= '{previous_start_datetime}'\n      AND transaction_date_time <= '{end_datetime}'\n    GROUP BY project_name\n)\nSELECT\n    project_name,\n    ROUND(COALESCE(CAST(curr_total AS DECIMAL(18, 2)), 0), 0) AS total_traffic_current_year,\n    ROUND(COALESCE(CAST(prev_total AS DECIMAL(18, 2)), 0), 0) AS total_traffic_previous_year,\n    COALESCE(\n        ROUND(((curr_total - prev_total) * 100.0) / NULLIF(prev_total, 0), 2),\n        0\n    ) AS yoy_change_pct\nFROM aggregates\nORDER BY yoy_change_pct DESC;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
       }
     }
   ]
