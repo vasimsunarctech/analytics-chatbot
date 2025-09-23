@@ -128,6 +128,118 @@
       "defaults": {
         "time_window": "current_fiscal_year"
       }
+    },
+    {
+      "id": "revenue_plan_vs_actual",
+      "description": "Compare planned and actual revenue by project with variance amounts and percentages.",
+      "match_phrases": [
+        "plan vs actual revenue",
+        "planned vs actual revenue",
+        "revenue variance vs plan",
+        "planned and actual revenue"
+      ],
+      "sql_template": "WITH revenue AS (\n    SELECT\n        project,\n        CAST(budget AS DECIMAL(18, 2)) AS planned_revenue,\n        CAST((COALESCE(cash, 0)\n              + COALESCE(fastag, 0)\n              + COALESCE(others, 0)\n              + COALESCE(overload, 0)\n              + COALESCE(pass_amount, 0)\n              - COALESCE(double_penalty, 0)) AS DECIMAL(18, 2)) AS actual_revenue\n    FROM dbo.ods_tmsdata_revenue\n    WHERE [date] >= '{start_datetime}'\n      AND [date] <= '{end_datetime}'\n)\nSELECT\n    project,\n    SUM(planned_revenue) AS planned_revenue,\n    SUM(actual_revenue) AS actual_revenue,\n    SUM(actual_revenue) - SUM(planned_revenue) AS variance_amount,\n    CASE\n        WHEN SUM(planned_revenue) = 0 THEN NULL\n        ELSE ROUND((SUM(actual_revenue) - SUM(planned_revenue)) * 100.0 / NULLIF(SUM(planned_revenue), 0), 2)\n    END AS variance_pct\nFROM revenue\nGROUP BY project\nORDER BY variance_pct DESC;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
+      }
+    },
+    {
+      "id": "yearly_plan_by_project",
+      "description": "Summarise planned revenue by project across the selected window.",
+      "match_phrases": [
+        "yearly plan for revenue",
+        "yearly revenue plan",
+        "annual revenue plan by project",
+        "revenue plan for the year"
+      ],
+      "sql_template": "SELECT\n    project,\n    SUM(CAST(budget AS DECIMAL(18, 2))) AS planned_revenue\nFROM dbo.ods_tmsdata_revenue\nWHERE [date] >= '{start_datetime}'\n  AND [date] <= '{end_datetime}'\nGROUP BY project\nORDER BY planned_revenue DESC;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
+      }
+    },
+    {
+      "id": "traffic_variance_vs_plan",
+      "description": "Compare planned and actual traffic volumes with variance and achievement percentages by project.",
+      "match_phrases": [
+        "traffic variance planned vs actual",
+        "planned vs actual traffic",
+        "traffic growth variance vs plan",
+        "traffic achievement vs plan"
+      ],
+      "sql_template": "WITH params AS (\n    SELECT\n        CAST('{start_datetime}' AS datetime) AS start_dt,\n        CAST('{end_datetime}' AS datetime) AS end_dt,\n        CAST('{start_date}' AS date) AS start_date\n),\nfiscal AS (\n    SELECT\n        start_dt,\n        end_dt,\n        CASE\n            WHEN MONTH(start_date) < 4 THEN YEAR(start_date) - 1\n            ELSE YEAR(start_date)\n        END AS fiscal_start_year\n    FROM params\n),\nbudget AS (\n    SELECT\n        CASE WHEN [ SPV ] = 'AJTL' THEN 'CSJTPL' ELSE [ SPV ] END AS project_name,\n        SUM(CAST([Traffic Budgets] AS DECIMAL(18, 6))) AS planned_traffic\n    FROM dbo.Budget_Traffic AS bt\n    CROSS JOIN fiscal\n    WHERE bt.[Year] = CONCAT('FY', RIGHT(CAST(fiscal.fiscal_start_year AS char(4)), 2), '-', RIGHT(CAST(fiscal.fiscal_start_year + 1 AS char(4)), 2))\n    GROUP BY CASE WHEN [ SPV ] = 'AJTL' THEN 'CSJTPL' ELSE [ SPV ] END\n),\nactual AS (\n    SELECT\n        dt.project_name,\n        SUM(COALESCE(dt.traffic_count, 0)) AS actual_traffic\n    FROM dbo.daily_transaction_final AS dt\n    CROSS JOIN params AS p\n    WHERE dt.transaction_date_time >= p.start_dt\n      AND dt.transaction_date_time <= p.end_dt\n    GROUP BY dt.project_name\n)\nSELECT\n    COALESCE(a.project_name, b.project_name) AS project_name,\n    ROUND(COALESCE(b.planned_traffic, 0), 2) AS planned_traffic,\n    COALESCE(a.actual_traffic, 0) AS actual_traffic,\n    COALESCE(a.actual_traffic, 0) - COALESCE(b.planned_traffic, 0) AS variance_traffic,\n    CASE\n        WHEN COALESCE(b.planned_traffic, 0) = 0 THEN NULL\n        ELSE ROUND((COALESCE(a.actual_traffic, 0) - COALESCE(b.planned_traffic, 0)) * 100.0 / NULLIF(COALESCE(b.planned_traffic, 0), 0), 2)\n    END AS variance_pct,\n    CASE\n        WHEN COALESCE(b.planned_traffic, 0) = 0 THEN NULL\n        ELSE ROUND(COALESCE(a.actual_traffic, 0) * 100.0 / NULLIF(COALESCE(b.planned_traffic, 0), 0), 2)\n    END AS achievement_pct\nFROM actual AS a\nFULL OUTER JOIN budget AS b\n    ON b.project_name = a.project_name\nORDER BY project_name;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
+      }
+    },
+    {
+      "id": "daily_pcu_traffic",
+      "description": "List daily traffic counts and PCU totals by project within the selected period.",
+      "match_phrases": [
+        "traffic pcu per day",
+        "pcu traffic per day",
+        "daily pcu traffic",
+        "pcu count per day"
+      ],
+      "sql_template": "SELECT\n    project_name,\n    CAST(transaction_date_time AS date) AS traffic_date,\n    SUM(COALESCE(traffic_count, 0)) AS total_traffic_count,\n    SUM(CAST(COALESCE(pcu_traffic_charged, 0) AS DECIMAL(18, 2))) AS daily_pcu_traffic\nFROM dbo.daily_transaction_final\nWHERE transaction_date_time >= '{start_datetime}'\n  AND transaction_date_time <= '{end_datetime}'\nGROUP BY project_name, CAST(transaction_date_time AS date)\nORDER BY traffic_date, project_name;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
+      }
+    },
+    {
+      "id": "average_daily_traffic",
+      "description": "Calculate average daily traffic counts by project for the selected window.",
+      "match_phrases": [
+        "average daily traffic",
+        "avg daily traffic",
+        "mean daily traffic count",
+        "average traffic per day"
+      ],
+      "sql_template": "WITH daily_totals AS (\n    SELECT\n        project_name,\n        CAST(transaction_date_time AS date) AS traffic_date,\n        SUM(COALESCE(traffic_count, 0)) AS daily_traffic_count\n    FROM dbo.daily_transaction_final\n    WHERE transaction_date_time >= '{start_datetime}'\n      AND transaction_date_time <= '{end_datetime}'\n    GROUP BY project_name, CAST(transaction_date_time AS date)\n)\nSELECT\n    project_name,\n    ROUND(AVG(CAST(daily_traffic_count AS DECIMAL(18, 2))), 2) AS avg_daily_traffic_count\nFROM daily_totals\nGROUP BY project_name\nORDER BY project_name;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
+      }
+    },
+    {
+      "id": "yesterday_revenue_traffic",
+      "description": "Return revenue and traffic totals by project and plaza for the requested day.",
+      "match_phrases": [
+        "yesterday revenue and traffic",
+        "revenue yesterday",
+        "traffic yesterday",
+        "yesterday's revenue and traffic"
+      ],
+      "sql_template": "SELECT\n    project,\n    plaza,\n    CAST([date] AS date) AS revenue_date,\n    SUM(CAST((COALESCE(cash, 0)\n              + COALESCE(fastag, 0)\n              + COALESCE(others, 0)\n              + COALESCE(overload, 0)\n              + COALESCE(pass_amount, 0)\n              - COALESCE(double_penalty, 0)) AS DECIMAL(18, 2))) AS total_revenue,\n    SUM(COALESCE(traffic_count, 0)) AS total_traffic\nFROM dbo.ods_tmsdata_revenue\nWHERE [date] >= '{start_datetime}'\n  AND [date] <= '{end_datetime}'\nGROUP BY project, plaza, CAST([date] AS date)\nORDER BY project, plaza;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
+      }
+    },
+    {
+      "id": "revenue_trend_vs_budget",
+      "description": "Show daily planned versus actual revenue with variance amounts and percentages.",
+      "match_phrases": [
+        "revenue trend vs budget",
+        "revenue versus budget trend",
+        "planned vs actual revenue trend",
+        "revenue trend against plan"
+      ],
+      "sql_template": "WITH revenue AS (\n    SELECT\n        CAST([date] AS date) AS revenue_date,\n        project,\n        CAST(budget AS DECIMAL(18, 2)) AS planned_revenue,\n        CAST((COALESCE(cash, 0)\n              + COALESCE(fastag, 0)\n              + COALESCE(others, 0)\n              + COALESCE(overload, 0)\n              + COALESCE(pass_amount, 0)\n              - COALESCE(double_penalty, 0)) AS DECIMAL(18, 2)) AS actual_revenue\n    FROM dbo.ods_tmsdata_revenue\n    WHERE [date] >= '{start_datetime}'\n      AND [date] <= '{end_datetime}'\n)\nSELECT\n    revenue_date,\n    project,\n    SUM(planned_revenue) AS planned_revenue,\n    SUM(actual_revenue) AS actual_revenue,\n    SUM(actual_revenue) - SUM(planned_revenue) AS variance_amount,\n    CASE\n        WHEN SUM(planned_revenue) = 0 THEN NULL\n        ELSE ROUND((SUM(actual_revenue) - SUM(planned_revenue)) * 100.0 / NULLIF(SUM(planned_revenue), 0), 2)\n    END AS variance_pct\nFROM revenue\nGROUP BY revenue_date, project\nORDER BY revenue_date, project;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
+      }
+    },
+    {
+      "id": "fastag_collection_percentage",
+      "description": "Calculate the share of revenue attributable to FASTag collections by project and plaza.",
+      "match_phrases": [
+        "fastag collection percentage",
+        "percentage of fastag collections",
+        "fastag share of revenue",
+        "fastag contribution percent"
+      ],
+      "sql_template": "WITH revenue AS (\n    SELECT\n        project,\n        plaza,\n        COALESCE(fastag, 0) AS fastag_amount,\n        CAST((COALESCE(cash, 0)\n              + COALESCE(fastag, 0)\n              + COALESCE(others, 0)\n              + COALESCE(overload, 0)\n              + COALESCE(pass_amount, 0)\n              - COALESCE(double_penalty, 0)) AS DECIMAL(18, 2)) AS total_revenue\n    FROM dbo.ods_tmsdata_revenue\n    WHERE [date] >= '{start_datetime}'\n      AND [date] <= '{end_datetime}'\n)\nSELECT\n    project,\n    plaza,\n    SUM(fastag_amount) AS fastag_collection,\n    SUM(total_revenue) AS total_revenue,\n    CASE\n        WHEN SUM(total_revenue) = 0 THEN NULL\n        ELSE ROUND(SUM(fastag_amount) * 100.0 / NULLIF(SUM(total_revenue), 0), 2)\n    END AS fastag_pct\nFROM revenue\nGROUP BY project, plaza\nORDER BY project, plaza;",
+      "defaults": {
+        "time_window": "current_fiscal_year"
+      }
     }
   ]
 }
