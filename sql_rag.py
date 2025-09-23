@@ -5,7 +5,7 @@ import json
 import os
 import re
 import time
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -119,26 +119,6 @@ def extract_limit(question: str, template: Dict[str, Any]) -> int:
     return limit
 
 
-def subtract_months(value: date, months: int) -> date:
-    year = value.year
-    month = value.month - months
-    day = value.day
-    while month <= 0:
-        month += 12
-        year -= 1
-    last_day = calendar.monthrange(year, month)[1]
-    if day > last_day:
-        day = last_day
-    return date(year, month, day)
-
-
-def previous_calendar_month(value: date) -> Tuple[date, date]:
-    first_this_month = value.replace(day=1)
-    last_prev_month = first_this_month - timedelta(days=1)
-    start_prev_month = last_prev_month.replace(day=1)
-    return start_prev_month, last_prev_month
-
-
 def fiscal_year_range(value: date, delta: int = 0) -> Tuple[date, date]:
     if value.month < FISCAL_YEAR_START_MONTH:
         base_start_year = value.year - 1
@@ -173,28 +153,102 @@ def resolve_default_window(keyword: str, today: date) -> Tuple[date, date]:
     return start, end
 
 
-def extract_date_range(
+def start_of_day(value: date) -> datetime:
+    return datetime.combine(value, time(0, 0, 0, tzinfo=IST))
+
+
+def end_of_day(value: date) -> datetime:
+    return datetime.combine(value, time(23, 59, 59, tzinfo=IST))
+
+
+def format_datetime_ist(value: datetime) -> str:
+    return value.astimezone(IST).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _coerce_datetime(value: Optional[str], fallback: datetime) -> datetime:
+    if not value:
+        return fallback
+    text = value.strip()
+    if not text:
+        return fallback
+    text = text.replace("T", " ")
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(text)
+    except ValueError:
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(text, fmt)
+                if fmt == "%Y-%m-%d":
+                    dt = datetime.combine(dt.date(), time(0, 0, 0))
+                break
+            except ValueError:
+                dt = None
+        if dt is None:
+            return fallback
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=IST)
+    else:
+        dt = dt.astimezone(IST)
+    return dt
+
+
+def _strip_json_block(text: str) -> str:
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        stripped = stripped.lstrip("`")
+        if stripped.lower().startswith("json"):
+            stripped = stripped[4:]
+        stripped = stripped.rstrip("`")
+    return stripped.strip()
+
+
+def resolve_date_range_with_llm(
     question: str,
     template: Dict[str, Any],
-    today: Optional[date] = None,
-) -> Tuple[date, date]:
-    today = today or datetime.now(IST).date()
-    question_lc = question.lower()
+    *,
+    current_dt: datetime,
+) -> Tuple[datetime, datetime]:
+    today = current_dt.date()
+    default_window = template.get("defaults", {}).get("time_window")
+    default_start_date, default_end_date = resolve_default_window(default_window, today)
+    default_start = start_of_day(default_start_date)
+    default_end = end_of_day(default_end_date)
 
-    numeric_month = re.search(r"last\s+(\d+)\s+months?", question_lc)
-    if "last month" in question_lc:
-        start, end = previous_calendar_month(today)
-    elif "last year" in question_lc:
-        start, end = fiscal_year_range(today, delta=-1)
-    elif numeric_month:
-        months = max(1, int(numeric_month.group(1)))
-        start = subtract_months(today, months)
-        end = today
-    else:
-        default_window = template.get("defaults", {}).get("time_window")
-        start, end = resolve_default_window(default_window, today)
+    system_prompt = (
+        "You convert user analytics questions into explicit date ranges.\n"
+        "Always work in Asia/Kolkata timezone.\n"
+        f"Current IST datetime: {format_datetime_ist(current_dt)}.\n"
+        f"If the user provides no timeframe, use start='{format_datetime_ist(default_start)}' and "
+        f"end='{format_datetime_ist(default_end)}'.\n"
+        "When the user references ranges like 'yesterday', 'today', 'last week', 'last month', 'last 3 months', "
+        "'last year', 'previous year', or specific dates, convert them to exact boundaries.\n"
+        "Align day-level requests to 00:00:00 for the start and 23:59:59 for the end.\n"
+        "Respond strictly as JSON with keys start_datetime and end_datetime using format 'YYYY-MM-DD HH:MM:SS'."
+    )
 
-    return start, end
+    try:
+        response = client.chat.completions.create(
+            model=OLLAMA_MODEL,
+            temperature=0.0,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question},
+            ],
+        )
+        raw = response.choices[0].message.content.strip()
+        payload_text = _strip_json_block(raw)
+        payload = json.loads(payload_text)
+        start_value = payload.get("start_datetime")
+        end_value = payload.get("end_datetime")
+        start_dt = _coerce_datetime(start_value, default_start)
+        end_dt = _coerce_datetime(end_value, default_end)
+        if start_dt > end_dt:
+            start_dt, end_dt = end_dt, start_dt
+        return start_dt, end_dt
+    except Exception:
+        return default_start, default_end
 
 
 # --- SQL execution helpers -------------------------------------------------
@@ -315,15 +369,26 @@ def run(
         }
 
     limit = extract_limit(question, template)
-    start_date, end_date = extract_date_range(question, template)
 
-    start_datetime = f"{start_date.strftime('%Y-%m-%d')} 00:00:00"
-    end_datetime = f"{end_date.strftime('%Y-%m-%d')} 23:59:59"
+    current_dt = datetime.now(IST)
+    start_dt, end_dt = resolve_date_range_with_llm(
+        question,
+        template,
+        current_dt=current_dt,
+    )
+
+    start_date = start_dt.date()
+    end_date = end_dt.date()
+
+    start_datetime = format_datetime_ist(start_dt)
+    end_datetime = format_datetime_ist(end_dt)
 
     previous_start_date = shift_years(start_date, -1)
     previous_end_date = shift_years(end_date, -1)
-    previous_start_datetime = f"{previous_start_date.strftime('%Y-%m-%d')} 00:00:00"
-    previous_end_datetime = f"{previous_end_date.strftime('%Y-%m-%d')} 23:59:59"
+    previous_start_dt = start_of_day(previous_start_date)
+    previous_end_dt = end_of_day(previous_end_date)
+    previous_start_datetime = format_datetime_ist(previous_start_dt)
+    previous_end_datetime = format_datetime_ist(previous_end_dt)
 
     try:
         format_params = {
