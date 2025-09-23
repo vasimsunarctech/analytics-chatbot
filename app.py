@@ -27,8 +27,7 @@ from flask import (
     url_for,
     jsonify,
 )
-from sql_rag import run as sql_rag_run, generate_answer as sql_rag_generate_answer
-from sql_agent import run_sql_agent
+from sql_rag import run as sql_rag_run
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE_PATH = BASE_DIR / "database.db"
@@ -336,31 +335,21 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
         app.logger.exception("SQL RAG execution failed: %s", exc)
         result = {"status": "error", "message": str(exc)}
 
-    rows = result.get("rows") if isinstance(result, dict) else None
-    answer = result.get("answer") if isinstance(result, dict) else None
-    sql_used = result.get("sql") if isinstance(result, dict) else None
-    notes = result.get("notes") if isinstance(result, dict) else None
+    if not isinstance(result, dict):
+        return ("I couldn't process that request right now.", None)
 
-    if result.get("status") != "ok" or not rows:
-        agent = run_sql_agent(
-            question,
-            conversation=conversation,
-            time_context=time_context,
-        )
-        if agent.status == "ok" and agent.rows:
-            rows = agent.rows
-            sql_used = agent.sql
-            notes = agent.notes
-            answer = sql_rag_generate_answer(
-                question,
-                sql_used,
-                rows,
-                time_context=time_context,
-                conversation=conversation,
-            )
-        else:
-            message = agent.message or result.get("message") or "I couldn't find data for that just now."
-            return (message, None)
+    if result.get("status") != "ok":
+        message = result.get("message") or "I couldn't find data for that just now."
+        return (message, None)
+
+    rows = result.get("rows")
+    answer = result.get("answer")
+    sql_used = result.get("sql")
+    notes = result.get("notes")
+
+    if not rows:
+        message = result.get("message") or "I couldn't find data for that just now."
+        return (message, None)
 
     serializable_rows: List[Dict[str, Any]] = []
     for row in rows or []:

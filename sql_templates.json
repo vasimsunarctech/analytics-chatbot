@@ -1,0 +1,26 @@
+{
+  "templates": [
+    {
+      "id": "top_non_performing_spvs",
+      "description": "Identify SPVs with the weakest revenue performance versus plan, sorted by lowest variance.",
+      "match_phrases": [
+        "top non performing spvs",
+        "non performing spvs",
+        "non-performing spvs",
+        "non performing spv",
+        "non-performing spv"
+      ],
+      "sql_template": "SELECT TOP ({limit})\n    project,\n    SUM(\n        CAST(\n            (COALESCE(cash, 0)\n             + COALESCE(fastag, 0)\n             + COALESCE(others, 0)\n             + COALESCE(overload, 0)\n             + COALESCE(pass_amount, 0))\n            - COALESCE(double_penalty, 0)\n        AS BIGINT)\n    ) AS revenue,\n    SUM(CAST(budget AS BIGINT)) AS budget,\n    ROUND(\n        (\n            (\n                SUM(\n                    CAST(\n                        (COALESCE(cash, 0)\n                         + COALESCE(fastag, 0)\n                         + COALESCE(others, 0)\n                         + COALESCE(overload, 0)\n                         + COALESCE(pass_amount, 0))\n                        - COALESCE(double_penalty, 0)\n                    AS BIGINT)\n                )\n                - SUM(CAST(budget AS BIGINT))\n            )\n            / NULLIF(SUM(CAST(budget AS BIGINT)), 0.0)\n        ) * 100.0,\n        2\n    ) AS performance_pct\nFROM dbo.ods_tmsdata_revenue\nWHERE [date] >= '{start_datetime}'\n  AND [date] <= '{end_datetime}'\nGROUP BY project\nORDER BY performance_pct ASC;",
+      "defaults": {
+        "limit": 5,
+        "time_window": "current_fiscal_year"
+      },
+      "limits": {
+        "limit": {
+          "min": 1,
+          "max": 50
+        }
+      }
+    }
+  ]
+}
