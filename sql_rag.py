@@ -72,8 +72,22 @@ def get_templates() -> List[Dict[str, Any]]:
     return templates
 
 
+def _normalize_text(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+
+
+def _token_score(question_tokens: List[str], phrase: str) -> int:
+    phrase_tokens = _normalize_text(str(phrase)).split()
+    if not phrase_tokens:
+        return 0
+    if all(token in question_tokens for token in phrase_tokens):
+        return len(phrase_tokens)
+    return 0
+
+
 def match_template(question: str, templates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    question_lc = question.lower()
+    normalized_question = _normalize_text(question)
+    question_tokens = normalized_question.split()
     best: Optional[Dict[str, Any]] = None
     best_score = 0
     for template in templates:
@@ -81,12 +95,10 @@ def match_template(question: str, templates: List[Dict[str, Any]]) -> Optional[D
         if not isinstance(phrases, list):
             continue
         for phrase in phrases:
-            phrase_lc = str(phrase).lower()
-            if phrase_lc and phrase_lc in question_lc:
-                score = len(phrase_lc)
-                if score > best_score:
-                    best = template
-                    best_score = score
+            score = _token_score(question_tokens, phrase)
+            if score > best_score:
+                best = template
+                best_score = score
     return best
 
 
@@ -196,7 +208,8 @@ FORBIDDEN_PATTERN = re.compile(
 
 def validate_sql(sql: str) -> str:
     cleaned = sql.strip().rstrip(";")
-    if not cleaned.lower().startswith("select"):
+    lowered = cleaned.lower()
+    if not (lowered.startswith("select") or lowered.startswith("with")):
         raise ValueError("Only SELECT statements are permitted.")
     if FORBIDDEN_PATTERN.search(cleaned):
         raise ValueError("Detected forbidden keyword in SQL statement.")
