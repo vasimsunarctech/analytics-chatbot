@@ -141,6 +141,12 @@ CURRENCY_KEYWORDS = (
     "value",
 )
 
+PERCENTAGE_KEYWORDS = (
+    "pct",
+    "percent",
+    "percentage",
+)
+
 
 SMALL_TALK_TRIGGERS = {
     "greeting": {"hi", "hello", "hey", "good morning", "good evening", "good afternoon"},
@@ -230,11 +236,62 @@ def respond_small_talk(kind: Optional[str], time_context: Dict[str, str]) -> str
 def format_for_metadata(row: Dict[str, Any]) -> Dict[str, Any]:
     formatted: Dict[str, Any] = {}
     for key, value in row.items():
+        lower_key = key.lower()
+        numeric_value = coerce_to_float(value)
         serialized = make_json_serializable(value)
-        if isinstance(value, (int, float)) and any(token in key.lower() for token in CURRENCY_KEYWORDS):
-            serialized = f"₹{value:,.2f}"
+
+        if numeric_value is not None and any(token in lower_key for token in CURRENCY_KEYWORDS):
+            lakhs_value = numeric_value / 100000 if numeric_value is not None else None
+            if lakhs_value is not None:
+                serialized = f"₹{lakhs_value:,.2f} Lakhs"
+        elif numeric_value is not None and is_percentage_key(lower_key):
+            serialized = f"{numeric_value:.2f}%"
+        elif isinstance(serialized, str) and any(token in lower_key for token in CURRENCY_KEYWORDS):
+            if not serialized.strip().startswith("₹"):
+                serialized = f"₹{serialized}"
+        elif isinstance(serialized, str) and is_percentage_key(lower_key):
+            if not serialized.strip().endswith("%"):
+                serialized = f"{serialized}%"
         formatted[key] = serialized
     return formatted
+
+
+def coerce_to_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip()
+    if not text:
+        return None
+    text = text.replace("₹", "").replace(",", "").replace("%", "")
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def is_percentage_key(key: str) -> bool:
+    key = key.lower()
+    return any(token in key for token in PERCENTAGE_KEYWORDS)
+
+
+def build_column_definitions(keys: List[str]) -> List[Dict[str, str]]:
+    columns: List[Dict[str, str]] = []
+    for key in keys:
+        raw_label = key.replace("_", " ").strip() or key
+        words = [word.capitalize() for word in raw_label.split()]
+        label = " ".join(words)
+        label = re.sub(r"Pct\b", "%", label)
+        label = re.sub(r"Percentage\b", "%", label)
+        label = re.sub(r"Percent\b", "%", label)
+        if is_percentage_key(key) and "%" not in label:
+            label = f"{label} %"
+        if any(token in key.lower() for token in CURRENCY_KEYWORDS):
+            if "(In Lakhs)" not in label:
+                label = f"{label} (In Lakhs)"
+        columns.append({"key": key, "label": label})
+    return columns
 
 
 def format_timestamp_value(value: Optional[str | datetime]) -> str:
@@ -388,7 +445,8 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
     metadata["previous_end_datetime"] = result.get("previous_end_datetime")
     if serializable_rows:
         metadata["rows"] = serializable_rows
-        metadata["columns"] = list(serializable_rows[0].keys())
+        column_keys = list(serializable_rows[0].keys())
+        metadata["columns"] = build_column_definitions(column_keys)
         chart = derive_chart_from_rows(rows)
         if chart:
             metadata["chart"] = chart
