@@ -5,7 +5,7 @@ import os
 import re
 import sqlite3
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 from functools import wraps
 from pathlib import Path
@@ -258,6 +258,8 @@ def format_timestamp_value(value: Optional[str | datetime]) -> str:
 
 def make_json_serializable(value: Any) -> Any:
     if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, date):
         return value.isoformat()
     return value
 

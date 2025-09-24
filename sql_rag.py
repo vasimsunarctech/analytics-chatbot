@@ -423,9 +423,14 @@ def rows_to_dicts(cursor: pyodbc.Cursor, rows: Iterable[tuple]) -> List[Dict[str
         record: Dict[str, Any] = {}
         for idx, value in enumerate(row):
             if isinstance(value, Decimal):
-                record[columns[idx]] = float(value)
+                coerced: Any = float(value)
+            elif isinstance(value, datetime):
+                coerced = value.isoformat()
+            elif isinstance(value, date):
+                coerced = value.isoformat()
             else:
-                record[columns[idx]] = value
+                coerced = value
+            record[columns[idx]] = coerced
         results.append(record)
     return results
 
@@ -493,6 +498,27 @@ def run(
     time_context: Optional[Dict[str, str]] = None,
     retries: int = 0,
 ) -> Dict[str, Any]:
+    def is_follow_up(text: str) -> bool:
+        normalized = (text or "").strip().lower()
+        if not normalized:
+            return False
+        # Short prompts or ones relying on referential words are likely follow-ups.
+        token_count = len(normalized.split())
+        follow_tokens = {"this", "that", "same", "again", "per", "more", "those", "it"}
+        if token_count <= 5:
+            return True
+        if any(token in normalized for token in follow_tokens):
+            return True
+        return False
+
+    def last_user_question(conv: Optional[Sequence[Tuple[str, str]]]) -> Optional[str]:
+        if not conv:
+            return None
+        for role, message in reversed(conv):
+            if role == "user" and message and message.strip():
+                return message.strip()
+        return None
+
     try:
         templates = get_templates()
     except Exception as exc:  # noqa: BLE001
@@ -501,13 +527,20 @@ def run(
             "message": f"Template load failed: {exc}",
         }
 
-    template = match_template(question, templates)
-    limit = extract_limit(question, template)
+    previous_question = last_user_question(conversation)
+    follow_up = bool(previous_question) and is_follow_up(question)
+
+    augmented_question = question
+    if follow_up and previous_question:
+        augmented_question = f"{previous_question}. Follow-up request: {question}"
+
+    template = None if follow_up else match_template(augmented_question, templates)
+    limit = extract_limit(augmented_question, template)
 
     current_dt = datetime.now(IST)
     date_template = template if template else DEFAULT_DATE_TEMPLATE
     start_dt, end_dt = resolve_date_range_with_llm(
-        question,
+        augmented_question,
         date_template,
         current_dt=current_dt,
     )
@@ -537,7 +570,7 @@ def run(
     while True:
         if fallback_mode:
             fallback = generate_sql_from_schema(
-                question,
+                augmented_question,
                 start_datetime,
                 end_datetime,
                 limit,
