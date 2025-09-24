@@ -50,7 +50,7 @@ LOG_FILE = Path(os.getenv("SQL_QUERY_LOG_PATH") or (BASE_DIR / "var" / "query_lo
 BETA_MESSAGE = (
     "I'm still in the beta phase, and my knowledge is a bit limited right now. Since my training data keeps updating every day, please try again later — I might have a better answer for you then! 🌱"
 )
-GREETING_RESPONSE = "Hello! I'm InteriseIQ. Ask me about traffic, revenue, exemptions, or costs across your projects."
+GREETING_RESPONSE = "Hello! I’m InteriseIQ. Ask me about traffic, revenue, exemptions, or costs across your projects."
 
 DEFAULT_DATE_TEMPLATE: Dict[str, Any] = {"defaults": {"time_window": "current_fiscal_year"}}
 
@@ -170,6 +170,116 @@ def _sanitize_top(value: Any) -> Optional[int]:
     return None
 
 
+def _normalize_text(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+
+
+def _token_score(question_tokens: List[str], phrase: str) -> int:
+    phrase_tokens = _normalize_text(str(phrase)).split()
+    if not phrase_tokens:
+        return 0
+    if all(token in question_tokens for token in phrase_tokens):
+        return len(phrase_tokens)
+    return 0
+
+
+def _manual_match_template(question: str, templates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    normalized_question = _normalize_text(question)
+    question_tokens = normalized_question.split()
+    best: Optional[Dict[str, Any]] = None
+    best_score = 0
+    for template in templates:
+        phrases = template.get("match_phrases", [])
+        if not isinstance(phrases, list):
+            continue
+        for phrase in phrases:
+            score = _token_score(question_tokens, phrase)
+            if score > best_score:
+                best = template
+                best_score = score
+    return best
+
+
+def _extract_limit_from_question(question: str, template: Optional[Dict[str, Any]]) -> Optional[int]:
+    match = re.search(r"top\s+(\d+)", question, re.IGNORECASE)
+    if match:
+        limit = int(match.group(1))
+    else:
+        limit = _template_default_limit(template or {}) if template else None
+
+    if template and limit is not None:
+        bounds = _template_limit_bounds(template)
+        if bounds["min"] is not None:
+            limit = max(bounds["min"], limit)
+        if bounds["max"] is not None:
+            limit = min(bounds["max"], limit)
+    return limit
+
+
+def manual_route_question(
+    question: str,
+    templates: List[Dict[str, Any]],
+    *,
+    default_start: datetime,
+    default_end: datetime,
+    previous_route: Optional[Dict[str, Any]] = None,
+) -> Optional[RouterDecision]:
+    normalized = _normalize_text(question or "")
+    if not normalized:
+        return None
+
+    selected_template = _manual_match_template(question, templates)
+
+    follow_up_tokens = ("same", "again", "more", "top", "less", "another")
+    if selected_template is None and previous_route:
+        if any(token in normalized for token in follow_up_tokens):
+            query_id = str(previous_route.get("query_id") or "").strip()
+            if not query_id:
+                return None
+            selected_template = next((tpl for tpl in templates if tpl.get("id") == query_id), None)
+            if selected_template is None:
+                return None
+            start_dt = _coerce_datetime(previous_route.get("start_datetime"), default_start)
+            end_dt = _coerce_datetime(previous_route.get("end_datetime"), default_end)
+            limit_value = _extract_limit_from_question(question, selected_template)
+            if limit_value is None:
+                limit_value = _sanitize_top(previous_route.get("top")) or _template_default_limit(selected_template)
+        else:
+            return None
+    else:
+        if selected_template is None:
+            return None
+        start_dt = default_start
+        end_dt = default_end
+        limit_value = _extract_limit_from_question(question, selected_template)
+
+    requires_limit = _template_requires_limit(selected_template)
+    if requires_limit and limit_value is None:
+        limit_value = _template_default_limit(selected_template)
+    if requires_limit and limit_value is None:
+        return None
+
+    bounds = _template_limit_bounds(selected_template)
+    if limit_value is not None:
+        if bounds["min"] is not None and limit_value < bounds["min"]:
+            limit_value = bounds["min"]
+        if bounds["max"] is not None and limit_value > bounds["max"]:
+            limit_value = bounds["max"]
+
+    if start_dt > end_dt:
+        start_dt, end_dt = end_dt, start_dt
+
+    decision: RouterDecision = {
+        "status": "ok",
+        "query_id": str(selected_template.get("id", "")).strip(),
+        "top": limit_value,
+        "start_datetime": format_datetime_ist(start_dt),
+        "end_datetime": format_datetime_ist(end_dt),
+    }
+
+    return decision
+
+
 def route_question_with_llm(
     question: str,
     templates: List[Dict[str, Any]],
@@ -212,8 +322,8 @@ def route_question_with_llm(
         raw = response.choices[0].message.content.strip()
         payload_text = _strip_json_block(raw)
         data = json.loads(payload_text)
-    except Exception as exc:  # noqa: BLE001
-        return RouterDecision(status="error", message=str(exc))
+    except Exception:
+        return RouterDecision(status="error", message=BETA_MESSAGE)
 
     status = str(data.get("status", "")).lower()
     decision: RouterDecision = {"status": status}
@@ -231,7 +341,7 @@ def route_question_with_llm(
         decision["message"] = BETA_MESSAGE
     else:
         decision["status"] = "error"
-        decision["message"] = data.get("message") or "Unable to route question."
+        decision["message"] = BETA_MESSAGE
 
     return decision
 
@@ -664,10 +774,21 @@ def run(
             "answer": GREETING_RESPONSE,
         }
     if status != "ok":
-        return {
-            "status": "error",
-            "message": route_decision.get("message") or BETA_MESSAGE,
-        }
+        manual_decision = manual_route_question(
+            question,
+            templates,
+            default_start=default_start,
+            default_end=default_end,
+            previous_route=previous_route,
+        )
+        if manual_decision:
+            route_decision = manual_decision
+            status = route_decision.get("status")
+        else:
+            return {
+                "status": "error",
+                "message": BETA_MESSAGE,
+            }
 
     query_id = (route_decision.get("query_id") or "").strip()
     template = next((tpl for tpl in templates if tpl.get("id") == query_id), None)
