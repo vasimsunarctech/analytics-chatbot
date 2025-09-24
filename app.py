@@ -224,7 +224,7 @@ def respond_small_talk(kind: Optional[str], time_context: Dict[str, str]) -> str
         current_date = time_context.get("current_date_ist")
         return f"In India it’s currently {current_time} on {current_date}. What TAS metric should we look at?"
     # greeting or default
-    return "Hello! I’m TAS Copilot. Ask me about traffic, revenue, exemptions, or costs across your projects."
+    return "Hello! I’m InteriseIQ. Ask me about traffic, revenue, exemptions, or costs across your projects."
 
 
 def format_for_metadata(row: Dict[str, Any]) -> Dict[str, Any]:
@@ -314,24 +314,43 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
     conversation = get_recent_messages_for_context(db, session_id) if session_id else []
     time_context = build_time_context()
 
+    previous_route: Optional[Dict[str, Any]] = None
+    if session_id:
+        last_ai = db.execute(
+            """
+            SELECT metadata
+            FROM messages
+            WHERE session_id = ? AND sender = 'ai' AND metadata IS NOT NULL
+            ORDER BY timestamp DESC
+            LIMIT 1
+            """,
+            (session_id,),
+        ).fetchone()
+        if last_ai and last_ai["metadata"]:
+            try:
+                meta_payload = json.loads(last_ai["metadata"])
+            except json.JSONDecodeError:
+                meta_payload = None
+            if isinstance(meta_payload, dict):
+                query_id = meta_payload.get("query_id")
+                if query_id:
+                    previous_route = {
+                        "query_id": query_id,
+                        "top": meta_payload.get("limit") or meta_payload.get("top"),
+                        "start_datetime": meta_payload.get("resolved_start_datetime"),
+                        "end_datetime": meta_payload.get("resolved_end_datetime"),
+                    }
+
     prompt_type, detail = classify_prompt(question)
     if prompt_type == "empty":
         return ("Please enter a question so I can help with TAS analytics.", None)
-    if prompt_type == "small_talk":
-        answer = respond_small_talk(detail, time_context)
-        return answer, None
-
-    if prompt_type == "out_of_scope":
-        return (
-            "My knowledge is focused on TAS analytics data. I’m not able to help with that topic.",
-            None,
-        )
 
     try:
         result = sql_rag_run(
             question,
             conversation=conversation,
             time_context=time_context,
+            previous_route=previous_route,
         )
     except Exception as exc:  # noqa: BLE001
         app.logger.exception("SQL RAG execution failed: %s", exc)
@@ -339,6 +358,9 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
 
     if not isinstance(result, dict):
         return ("I couldn't process that request right now.", None)
+
+    if result.get("mode") == "small_talk":
+        return result.get("answer", "Hello!"), None
 
     if result.get("status") != "ok":
         message = result.get("message") or "I couldn't find data for that just now."
@@ -358,6 +380,12 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
         serializable_rows.append(format_for_metadata(row))
 
     metadata: Dict[str, Any] = {}
+    metadata["query_id"] = result.get("query_id")
+    metadata["limit"] = result.get("limit")
+    metadata["resolved_start_datetime"] = result.get("resolved_start_datetime")
+    metadata["resolved_end_datetime"] = result.get("resolved_end_datetime")
+    metadata["previous_start_datetime"] = result.get("previous_start_datetime")
+    metadata["previous_end_datetime"] = result.get("previous_end_datetime")
     if serializable_rows:
         metadata["rows"] = serializable_rows
         metadata["columns"] = list(serializable_rows[0].keys())
@@ -368,6 +396,12 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
         metadata["sql"] = sql_used
     if notes:
         metadata["notes"] = notes
+
+    metadata = {
+        key: value
+        for key, value in metadata.items()
+        if value is not None or key in {"rows", "columns", "chart"}
+    }
 
     final_answer = answer or "I hope that helps."
     return final_answer, (metadata or None)

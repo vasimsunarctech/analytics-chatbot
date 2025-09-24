@@ -8,7 +8,7 @@ import time
 from datetime import date, datetime, timedelta, time as dt_time
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, TypedDict
 
 import pyodbc
 from dotenv import load_dotenv
@@ -44,7 +44,39 @@ CONNECTION_STRING = (
 client = OpenAI(api_key=OPENAI_API_KEY, base_url=OLLAMA_API_BASE)
 
 _template_cache: Dict[str, Any] = {"timestamp": 0.0, "templates": []}
+
+BASE_DIR = Path(__file__).resolve().parent
+LOG_FILE = Path(os.getenv("SQL_QUERY_LOG_PATH") or (BASE_DIR / "var" / "query_logs.json"))
+BETA_MESSAGE = (
+    "I'm still in the beta phase, and my knowledge is a bit limited right now. Since my training data keeps updating every day, please try again later — I might have a better answer for you then! 🌱"
+)
+GREETING_RESPONSE = "Hello! I'm InteriseIQ. Ask me about traffic, revenue, exemptions, or costs across your projects."
+
 DEFAULT_DATE_TEMPLATE: Dict[str, Any] = {"defaults": {"time_window": "current_fiscal_year"}}
+
+ROUTER_SYSTEM_PROMPT = (
+    "You are a routing assistant for TAS analytics questions.\n"
+    "Select the most relevant query id from the provided catalogue.\n"
+    "Return only JSON with keys: status, query_id, top, start_datetime, end_datetime, message.\n"
+    "- status must be 'ok', 'greeting', or 'none'.\n"
+    "- Use status 'greeting' for salutations or casual chit-chat.\n"
+    "- Use status 'none' when no query id fits.\n"
+    "- When status is 'ok', include a valid query_id, plus explicit start_datetime and end_datetime in 'YYYY-MM-DD HH:MM:SS' (IST).\n"
+    "- top must be an integer when the query requires TOP; otherwise set it to null.\n"
+    "- Honour user-specified date hints; otherwise use the supplied default range.\n"
+    "- Keep start_datetime earlier or equal to end_datetime.\n"
+    "- Reuse previous context when the question references the prior answer.\n"
+    "- Do not emit Markdown code fences, explanations, or additional text."
+)
+
+
+class RouterDecision(TypedDict, total=False):
+    status: str
+    query_id: str
+    top: Optional[int]
+    start_datetime: Optional[str]
+    end_datetime: Optional[str]
+    message: Optional[str]
 
 
 # --- Template helpers ------------------------------------------------------
@@ -74,57 +106,134 @@ def get_templates() -> List[Dict[str, Any]]:
     return templates
 
 
-def _normalize_text(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+def _template_requires_limit(template: Dict[str, Any]) -> bool:
+    sql_template = template.get("sql_template", "")
+    return "{limit}" in sql_template
 
 
-def _token_score(question_tokens: List[str], phrase: str) -> int:
-    phrase_tokens = _normalize_text(str(phrase)).split()
-    if not phrase_tokens:
-        return 0
-    if all(token in question_tokens for token in phrase_tokens):
-        return len(phrase_tokens)
-    return 0
+def _template_default_limit(template: Dict[str, Any]) -> Optional[int]:
+    defaults = template.get("defaults", {}) or {}
+    value = defaults.get("limit")
+    return int(value) if value is not None else None
 
 
-def match_template(question: str, templates: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
-    normalized_question = _normalize_text(question)
-    question_tokens = normalized_question.split()
-    best: Optional[Dict[str, Any]] = None
-    best_score = 0
+def _template_limit_bounds(template: Dict[str, Any]) -> Dict[str, Optional[int]]:
+    limits_cfg = template.get("limits", {}) or {}
+    bounds = limits_cfg.get("limit", {}) or {}
+    minimum = bounds.get("min")
+    maximum = bounds.get("max")
+    return {
+        "min": int(minimum) if minimum is not None else None,
+        "max": int(maximum) if maximum is not None else None,
+    }
+
+
+def build_router_reference(templates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    reference: List[Dict[str, Any]] = []
     for template in templates:
-        phrases = template.get("match_phrases", [])
-        if not isinstance(phrases, list):
-            continue
-        for phrase in phrases:
-            score = _token_score(question_tokens, phrase)
-            if score > best_score:
-                best = template
-                best_score = score
-    return best
+        reference.append(
+            {
+                "id": template.get("id"),
+                "summary": template.get("description"),
+                "patterns": template.get("match_phrases", []),
+                "requires_limit": _template_requires_limit(template),
+                "default_limit": _template_default_limit(template),
+                "limit_bounds": _template_limit_bounds(template),
+            }
+        )
+    return reference
 
 
-def extract_limit(question: str, template: Optional[Dict[str, Any]] = None) -> Optional[int]:
-    defaults = template.get("defaults", {}) if template else {}
-    limits_cfg = template.get("limits", {}).get("limit", {}) if template else {}
-
-    limit_default = defaults.get("limit")
-
-    match = re.search(r"top\s+(\d+)", question, re.IGNORECASE)
-    if match:
-        limit = int(match.group(1))
-    elif limit_default is not None:
-        limit = int(limit_default)
-    else:
+def _sanitize_top(value: Any) -> Optional[int]:
+    if value is None:
         return None
+    if isinstance(value, bool):  # Guard against True/False being treated as 1/0
+        return None
+    if isinstance(value, (int, float)):
+        try:
+            converted = int(value)
+        except (TypeError, ValueError):
+            return None
+        return converted if converted > 0 else None
+    if isinstance(value, str):
+        cleaned = value.strip()
+        if not cleaned:
+            return None
+        if not cleaned.isdigit():
+            try:
+                cleaned_int = int(float(cleaned))
+            except (TypeError, ValueError):
+                return None
+            return cleaned_int if cleaned_int > 0 else None
+        parsed = int(cleaned)
+    return parsed if parsed > 0 else None
+    return None
 
-    if limits_cfg:
-        if "min" in limits_cfg:
-            limit = max(int(limits_cfg["min"]), limit)
-        if "max" in limits_cfg:
-            limit = min(int(limits_cfg["max"]), limit)
 
-    return limit
+def route_question_with_llm(
+    question: str,
+    templates: List[Dict[str, Any]],
+    *,
+    current_dt: datetime,
+    default_start: datetime,
+    default_end: datetime,
+    previous_question: Optional[str] = None,
+    previous_route: Optional[Dict[str, Any]] = None,
+) -> RouterDecision:
+    cleaned_question = (question or "").strip()
+    if not cleaned_question:
+        return RouterDecision(status="none")
+
+    reference = build_router_reference(templates)
+    payload: Dict[str, Any] = {
+        "question": cleaned_question,
+        "templates": reference,
+        "default_start_datetime": format_datetime_ist(default_start),
+        "default_end_datetime": format_datetime_ist(default_end),
+        "current_datetime_ist": format_datetime_ist(current_dt),
+    }
+
+    if previous_question:
+        payload["previous_question"] = previous_question
+    if previous_route:
+        payload["previous_route"] = previous_route
+
+    messages = [
+        {"role": "system", "content": ROUTER_SYSTEM_PROMPT},
+        {"role": "user", "content": json.dumps(payload)},
+    ]
+
+    try:
+        response = client.chat.completions.create(
+            model=OLLAMA_MODEL,
+            temperature=0.0,
+            messages=messages,
+        )
+        raw = response.choices[0].message.content.strip()
+        payload_text = _strip_json_block(raw)
+        data = json.loads(payload_text)
+    except Exception as exc:  # noqa: BLE001
+        return RouterDecision(status="error", message=str(exc))
+
+    status = str(data.get("status", "")).lower()
+    decision: RouterDecision = {"status": status}
+
+    if status == "ok":
+        decision["query_id"] = str(data.get("query_id", "")).strip()
+        decision["top"] = _sanitize_top(data.get("top"))
+        start_dt = data.get("start_datetime")
+        end_dt = data.get("end_datetime")
+        decision["start_datetime"] = str(start_dt).strip() if start_dt else None
+        decision["end_datetime"] = str(end_dt).strip() if end_dt else None
+    elif status == "greeting":
+        decision["message"] = GREETING_RESPONSE
+    elif status == "none":
+        decision["message"] = BETA_MESSAGE
+    else:
+        decision["status"] = "error"
+        decision["message"] = data.get("message") or "Unable to route question."
+
+    return decision
 
 
 # --- Schema helpers --------------------------------------------------------
@@ -448,6 +557,24 @@ def execute_query(sql: str) -> List[Dict[str, Any]]:
         return rows
 
 
+def append_query_log(question: str, sql: str) -> None:
+    try:
+        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        log_entries: List[Dict[str, Any]] = []
+        if LOG_FILE.exists():
+            try:
+                existing = json.loads(LOG_FILE.read_text())
+                if isinstance(existing, list):
+                    log_entries = existing
+            except json.JSONDecodeError:
+                log_entries = []
+        log_entries.append({"question": question, "sql": sql})
+        LOG_FILE.write_text(json.dumps(log_entries, indent=2))
+    except Exception:
+        # Logging must never break the primary flow
+        return
+
+
 # --- Answer generation -----------------------------------------------------
 
 
@@ -496,34 +623,9 @@ def run(
     *,
     conversation: Optional[Sequence[Tuple[str, str]]] = None,
     time_context: Optional[Dict[str, str]] = None,
-    retries: int = 0,
+    retries: int = 0,  # noqa: ARG001 - retained for compatibility
+    previous_route: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    def is_follow_up(text: str) -> bool:
-        normalized = (text or "").strip().lower()
-        if not normalized:
-            return False
-        if re.search(r"\b(this|that|same|again|them|these|those|it)\b", normalized):
-            return True
-        follow_phrases = (
-            "per week",
-            "per month",
-            "per day",
-            "per quarter",
-            "for this",
-            "with this",
-            "same period",
-            "same data",
-        )
-        return any(phrase in normalized for phrase in follow_phrases)
-
-    def last_user_question(conv: Optional[Sequence[Tuple[str, str]]]) -> Optional[str]:
-        if not conv:
-            return None
-        for role, message in reversed(conv):
-            if role == "user" and message and message.strip():
-                return message.strip()
-        return None
-
     try:
         templates = get_templates()
     except Exception as exc:  # noqa: BLE001
@@ -532,40 +634,71 @@ def run(
             "message": f"Template load failed: {exc}",
         }
 
-    previous_question = last_user_question(conversation)
-    follow_up = bool(previous_question) and is_follow_up(question)
-    normalized_follow_text = (question or "").strip().lower()
-    dynamic_time_adjustment = any(
-        phrase in normalized_follow_text
-        for phrase in (
-            "per week",
-            "weekly",
-            "per month",
-            "monthly",
-            "per quarter",
-            "quarterly",
-            "per year",
-            "yearly",
-        )
-    )
-
-    augmented_question = question
-    if follow_up and previous_question:
-        augmented_question = f"{previous_question}. Follow-up request: {question}"
-
-    if follow_up and dynamic_time_adjustment:
-        template = None
-    else:
-        template = match_template(augmented_question if follow_up else question, templates)
-    limit = extract_limit(augmented_question, template)
+    previous_question: Optional[str] = None
+    if conversation:
+        for role, message in reversed(conversation):
+            if role == "user" and message and message.strip():
+                previous_question = message.strip()
+                break
 
     current_dt = datetime.now(IST)
-    date_template = template if template else DEFAULT_DATE_TEMPLATE
-    start_dt, end_dt = resolve_date_range_with_llm(
-        augmented_question,
-        date_template,
+    default_start_date, default_end_date = resolve_default_window("current_fiscal_year", current_dt.date())
+    default_start = start_of_day(default_start_date)
+    default_end = end_of_day(default_end_date)
+
+    route_decision = route_question_with_llm(
+        question,
+        templates,
         current_dt=current_dt,
+        default_start=default_start,
+        default_end=default_end,
+        previous_question=previous_question,
+        previous_route=previous_route,
     )
+
+    status = route_decision.get("status")
+    if status == "greeting":
+        return {
+            "status": "ok",
+            "mode": "small_talk",
+            "answer": GREETING_RESPONSE,
+        }
+    if status != "ok":
+        return {
+            "status": "error",
+            "message": route_decision.get("message") or BETA_MESSAGE,
+        }
+
+    query_id = (route_decision.get("query_id") or "").strip()
+    template = next((tpl for tpl in templates if tpl.get("id") == query_id), None)
+    if not query_id or template is None:
+        return {
+            "status": "error",
+            "message": BETA_MESSAGE,
+        }
+
+    limit_value = route_decision.get("top")
+    if limit_value is None:
+        limit_value = _template_default_limit(template)
+
+    bounds = _template_limit_bounds(template)
+    if limit_value is not None:
+        if bounds["min"] is not None and limit_value < bounds["min"]:
+            limit_value = bounds["min"]
+        if bounds["max"] is not None and limit_value > bounds["max"]:
+            limit_value = bounds["max"]
+
+    requires_limit = _template_requires_limit(template)
+    if requires_limit and limit_value is None:
+        return {
+            "status": "error",
+            "message": BETA_MESSAGE,
+        }
+
+    start_dt = _coerce_datetime(route_decision.get("start_datetime"), default_start)
+    end_dt = _coerce_datetime(route_decision.get("end_datetime"), default_end)
+    if start_dt > end_dt:
+        start_dt, end_dt = end_dt, start_dt
 
     start_date = start_dt.date()
     end_date = end_dt.date()
@@ -580,93 +713,45 @@ def run(
     previous_start_datetime = format_datetime_ist(previous_start_dt)
     previous_end_datetime = format_datetime_ist(previous_end_dt)
 
-    fallback_mode = template is None
-    fallback_attempts = max(1, retries) if fallback_mode else 0
-    attempt = 0
-    previous_sql = None
-    previous_error = None
-    sql_text = ""
-    template_id = ""
-    notes_hint = ""
+    try:
+        format_params = {
+            "limit": limit_value,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "start_datetime": start_datetime,
+            "end_datetime": end_datetime,
+            "previous_start_date": previous_start_date.isoformat(),
+            "previous_end_date": previous_end_date.isoformat(),
+            "previous_start_datetime": previous_start_datetime,
+            "previous_end_datetime": previous_end_datetime,
+        }
+        sql_text = template["sql_template"].format(**format_params)
+    except KeyError as exc:
+        return {
+            "status": "error",
+            "message": f"Template '{template.get('id')}' is missing placeholder {exc}.",
+        }
 
-    while True:
-        if fallback_mode:
-            fallback = generate_sql_from_schema(
-                augmented_question,
-                start_datetime,
-                end_datetime,
-                limit,
-                conversation,
-                previous_sql=previous_sql,
-                previous_error=previous_error,
-            )
-            if fallback.get("status") != "ok":
-                return fallback
-            sql_text = fallback["sql"]
-            template_id = "fallback_schema"
-            notes_hint = fallback.get("notes", "")
-        else:
-            if "{limit}" in template.get("sql_template", "") and limit is None:
-                return {
-                    "status": "error",
-                    "message": f"Template '{template.get('id')}' requires a limit value.",
-                }
-            try:
-                format_params = {
-                    "limit": limit,
-                    "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat(),
-                    "start_datetime": start_datetime,
-                    "end_datetime": end_datetime,
-                    "previous_start_date": previous_start_date.isoformat(),
-                    "previous_end_date": previous_end_date.isoformat(),
-                    "previous_start_datetime": previous_start_datetime,
-                    "previous_end_datetime": previous_end_datetime,
-                }
-                sql_text = template["sql_template"].format(**format_params)
-            except KeyError as exc:
-                return {
-                    "status": "error",
-                    "message": f"Template '{template.get('id')}' is missing placeholder {exc}.",
-                }
-            template_id = template.get("id", "template")
-            notes_hint = ""
+    try:
+        validated_sql = validate_sql(sql_text)
+    except Exception:  # noqa: BLE001
+        return {
+            "status": "error",
+            "message": BETA_MESSAGE,
+        }
 
-        try:
-            validated_sql = validate_sql(sql_text)
-        except Exception as exc:  # noqa: BLE001
-            if fallback_mode and attempt < fallback_attempts:
-                previous_sql = sql_text
-                previous_error = str(exc)
-                attempt += 1
-                continue
-            return {
-                "status": "error",
-                "message": str(exc),
-                "sql": sql_text,
-            }
+    try:
+        rows = execute_query(validated_sql)
+    except Exception:  # noqa: BLE001
+        return {
+            "status": "error",
+            "message": BETA_MESSAGE,
+        }
 
-        try:
-            rows = execute_query(validated_sql)
-            break
-        except Exception as exc:  # noqa: BLE001
-            if fallback_mode and attempt < fallback_attempts:
-                previous_sql = validated_sql
-                previous_error = str(exc)
-                attempt += 1
-                continue
-            return {
-                "status": "error",
-                "message": str(exc),
-                "sql": validated_sql,
-            }
-
-    # After loop, rows contains result
-
-    validated_sql = validated_sql  # keep scope for below
+    append_query_log(question, validated_sql)
 
     enriched_context = dict(time_context or {})
-    limit_context = str(limit) if limit is not None else ""
+    limit_context = str(limit_value) if limit_value is not None else ""
     enriched_context.update(
         {
             "resolved_start_date": start_date.isoformat(),
@@ -678,8 +763,7 @@ def run(
             "previous_start_datetime": previous_start_datetime,
             "previous_end_datetime": previous_end_datetime,
             "limit": limit_context,
-            "template_id": template_id,
-            "mode": "fallback" if template is None else "template",
+            "template_id": query_id,
         }
     )
 
@@ -692,13 +776,11 @@ def run(
     )
 
     notes_parts = [
-        f"template={template_id}",
+        f"template={query_id}",
         f"limit={limit_context or 'n/a'}",
         f"date_range={start_datetime} to {end_datetime}",
         f"previous_range={previous_start_datetime} to {previous_end_datetime}",
     ]
-    if notes_hint:
-        notes_parts.append(f"details={notes_hint}")
     notes = "; ".join(notes_parts)
 
     return {
@@ -707,6 +789,12 @@ def run(
         "notes": notes,
         "rows": rows,
         "answer": answer,
+        "query_id": query_id,
+        "limit": limit_value,
+        "resolved_start_datetime": start_datetime,
+        "resolved_end_datetime": end_datetime,
+        "previous_start_datetime": previous_start_datetime,
+        "previous_end_datetime": previous_end_datetime,
     }
 
 
