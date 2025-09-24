@@ -415,7 +415,7 @@ def create_message(
     metadata: Optional[Dict[str, Any]] = None,
 ) -> dict[str, Any]:
     timestamp = timestamp or datetime.now(IST)
-    metadata_json = json.dumps(metadata) if metadata else None
+    metadata_json = json.dumps(metadata, default=make_json_serializable) if metadata else None
     cur = db.execute(
         "INSERT INTO messages (session_id, sender, message_text, timestamp, metadata) VALUES (?, ?, ?, ?, ?)",
         (session_id, sender, text, timestamp, metadata_json),

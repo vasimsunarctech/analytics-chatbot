@@ -502,14 +502,19 @@ def run(
         normalized = (text or "").strip().lower()
         if not normalized:
             return False
-        # Short prompts or ones relying on referential words are likely follow-ups.
-        token_count = len(normalized.split())
-        follow_tokens = {"this", "that", "same", "again", "per", "more", "those", "it"}
-        if token_count <= 5:
+        if re.search(r"\b(this|that|same|again|them|these|those|it)\b", normalized):
             return True
-        if any(token in normalized for token in follow_tokens):
-            return True
-        return False
+        follow_phrases = (
+            "per week",
+            "per month",
+            "per day",
+            "per quarter",
+            "for this",
+            "with this",
+            "same period",
+            "same data",
+        )
+        return any(phrase in normalized for phrase in follow_phrases)
 
     def last_user_question(conv: Optional[Sequence[Tuple[str, str]]]) -> Optional[str]:
         if not conv:
@@ -529,12 +534,29 @@ def run(
 
     previous_question = last_user_question(conversation)
     follow_up = bool(previous_question) and is_follow_up(question)
+    normalized_follow_text = (question or "").strip().lower()
+    dynamic_time_adjustment = any(
+        phrase in normalized_follow_text
+        for phrase in (
+            "per week",
+            "weekly",
+            "per month",
+            "monthly",
+            "per quarter",
+            "quarterly",
+            "per year",
+            "yearly",
+        )
+    )
 
     augmented_question = question
     if follow_up and previous_question:
         augmented_question = f"{previous_question}. Follow-up request: {question}"
 
-    template = None if follow_up else match_template(augmented_question, templates)
+    if follow_up and dynamic_time_adjustment:
+        template = None
+    else:
+        template = match_template(augmented_question if follow_up else question, templates)
     limit = extract_limit(augmented_question, template)
 
     current_dt = datetime.now(IST)
