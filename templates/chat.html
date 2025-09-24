@@ -122,16 +122,16 @@
                                     <table class="min-w-full divide-y divide-slate-200 text-xs">
                                         <thead class="bg-slate-50 text-slate-600">
                                             <tr>
-                                                <template x-for="column in normalizeColumns(msg.metadata?.columns)" :key="column.key">
-                                                    <th class="px-3 py-2 text-left font-medium" x-text="column.label"></th>
+                                                <template x-for="column in msg.metadata.columns" :key="column">
+                                                    <th class="px-3 py-2 text-left font-medium" x-text="column"></th>
                                                 </template>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-100">
                                             <template x-for="(row, rowIndex) in msg.metadata.rows" :key="rowIndex">
                                                 <tr>
-                                                    <template x-for="column in normalizeColumns(msg.metadata?.columns)" :key="column.key">
-                                                        <td class="px-3 py-2 text-slate-700" x-text="row[column.key] ?? '—'"></td>
+                                                    <template x-for="column in msg.metadata.columns" :key="column">
+                                                        <td class="px-3 py-2 text-slate-700" x-text="row[column] ?? '—'"></td>
                                                     </template>
                                                 </tr>
                                             </template>
@@ -320,48 +320,6 @@
                         });
                     });
                 });
-            },
-            formatColumnLabel(key) {
-                if (!key || typeof key !== 'string') {
-                    return '';
-                }
-                const words = key
-                    .split('_')
-                    .filter(Boolean)
-                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1));
-                let label = words.join(' ');
-                label = label.replace(/Pct\b/gi, '%');
-                label = label.replace(/Percentage\b/gi, '%');
-                label = label.replace(/Percent\b/gi, '%');
-                if (/(pct|percent)/i.test(key) && !/%/.test(label)) {
-                    label = `${label} %`;
-                }
-                if (/(amount|revenue|fare|cost|tariff|collection|expense|value)/i.test(key) && !/Lakhs/i.test(label)) {
-                    label = `${label} (In Lakhs)`;
-                }
-                return label;
-            },
-            normalizeColumns(columns) {
-                if (!Array.isArray(columns)) {
-                    return [];
-                }
-                return columns
-                    .map((column) => {
-                        if (column && typeof column === 'object' && 'key' in column) {
-                            const key = column.key;
-                            if (!key) {
-                                return null;
-                            }
-                            const label = column.label || this.formatColumnLabel(key);
-                            return { key, label };
-                        }
-                        if (typeof column === 'string') {
-                            const key = column;
-                            return { key, label: this.formatColumnLabel(key) };
-                        }
-                        return null;
-                    })
-                    .filter(Boolean);
             },
             async send() {
                 const text = this.messageText.trim();
