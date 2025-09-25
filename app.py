@@ -241,7 +241,16 @@ def build_column_definitions(keys: List[str]) -> List[Dict[str, str]]:
     columns: List[Dict[str, str]] = []
     for key in keys:
         raw_label = key.replace("_", " ").strip() or key
-        label = raw_label.title()
+        words = [word.capitalize() for word in raw_label.split()]
+        label = " ".join(words)
+        lower_key = key.lower()
+        if "pct" in lower_key or "percent" in lower_key:
+            label = label.replace("Pct", "%").replace("Percent", "%")
+            if "%" not in label:
+                label = f"{label} %"
+        if any(token in lower_key for token in CURRENCY_KEYWORDS):
+            if "Lakhs" not in label:
+                label = f"{label} (In Lakhs)"
         columns.append({"key": key, "label": label})
     return columns
 

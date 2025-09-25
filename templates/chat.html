@@ -325,12 +325,22 @@
                 if (!key || typeof key !== 'string') {
                     return '';
                 }
-                const title = key
+                const lower = key.toLowerCase();
+                let label = key
                     .split('_')
                     .filter(Boolean)
                     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
                     .join(' ');
-                return title;
+                if (/(pct|percent)/i.test(lower)) {
+                    label = label.replace(/Pct/gi, '%').replace(/Percent/gi, '%');
+                    if (!/%/.test(label)) {
+                        label = `${label} %`;
+                    }
+                }
+                if (/(amount|revenue|fare|cost|tariff|collection|expense|value|budget)/i.test(lower) && !/Lakhs/i.test(label)) {
+                    label = `${label} (In Lakhs)`;
+                }
+                return label;
             },
             normalizeColumns(columns) {
                 if (!Array.isArray(columns)) {

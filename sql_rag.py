@@ -777,6 +777,7 @@ def generate_answer(
                     "rows": rows,
                     "time_context": time_context,
                     "conversation": conversation,
+                    "notes": "Monetary values are already expressed in Indian Rupees (Lakhs). Do not convert them to Crores or other units. Preserve the ₹ symbol as shown.",
                 }
             ),
         },
@@ -955,10 +956,12 @@ def run(
         }
     )
 
+    rows_for_answer = sanitized_rows if sanitized_rows is not None else rows
+
     answer = generate_answer(
         question,
         validated_sql,
-        rows,
+        rows_for_answer,
         time_context=enriched_context,
         conversation=conversation,
     )
