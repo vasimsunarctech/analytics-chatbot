@@ -367,17 +367,21 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
         return (message, None)
 
     rows = result.get("rows")
+    sanitized_rows = result.get("sanitized_rows") if isinstance(result.get("sanitized_rows"), list) else None
     answer = result.get("answer")
     sql_used = result.get("sql")
     notes = result.get("notes")
 
-    if not rows:
+    display_rows = sanitized_rows if sanitized_rows is not None else rows
+
+    if not display_rows:
         message = result.get("message") or "I couldn't find data for that just now."
         return (message, None)
 
-    serializable_rows: List[Dict[str, Any]] = []
-    for row in rows or []:
-        serializable_rows.append(format_for_metadata(row))
+    if sanitized_rows is not None:
+        serializable_rows = sanitized_rows
+    else:
+        serializable_rows = [format_for_metadata(row) for row in rows or []]
 
     metadata: Dict[str, Any] = {}
     metadata["query_id"] = result.get("query_id")
@@ -388,7 +392,7 @@ def run_sql_rag(question: str) -> Tuple[str, Optional[Dict[str, Any]]]:
     metadata["previous_end_datetime"] = result.get("previous_end_datetime")
     if serializable_rows:
         metadata["rows"] = serializable_rows
-        metadata["columns"] = list(serializable_rows[0].keys())
+        metadata["columns"] = build_column_definitions(list(serializable_rows[0].keys()))
         chart = derive_chart_from_rows(rows)
         if chart:
             metadata["chart"] = chart
