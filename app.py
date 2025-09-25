@@ -133,12 +133,7 @@ def ensure_message_metadata_column(db: sqlite3.Connection) -> None:
 CURRENCY_KEYWORDS = (
     "amount",
     "revenue",
-    "fare",
-    "cost",
-    "tariff",
-    "collection",
-    "expense",
-    "value",
+    "budget",
 )
 
 
@@ -248,7 +243,7 @@ def build_column_definitions(keys: List[str]) -> List[Dict[str, str]]:
             label = label.replace("Pct", "%").replace("Percent", "%")
             if "%" not in label:
                 label = f"{label} %"
-        if any(token in lower_key for token in CURRENCY_KEYWORDS):
+        if any(token in lower_key for token in ("revenue", "budget", "amount")):
             if "Lakhs" not in label:
                 label = f"{label} (In Lakhs)"
         columns.append({"key": key, "label": label})

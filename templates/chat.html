@@ -337,7 +337,7 @@
                         label = `${label} %`;
                     }
                 }
-                if (/(amount|revenue|fare|cost|tariff|collection|expense|value|budget)/i.test(lower) && !/Lakhs/i.test(label)) {
+                if (/(amount|revenue|budget)/i.test(lower) && !/Lakhs/i.test(label)) {
                     label = `${label} (In Lakhs)`;
                 }
                 return label;

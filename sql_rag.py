@@ -75,12 +75,11 @@ SANITIZE_SYSTEM_PROMPT = (
     "Rules:\n"
     "- Preserve the original row order and column keys.\n"
     "- Never add new columns or drop existing ones.\n"
-    "- For columns listed in currency_columns, convert each numeric value to Lakhs (value / 100000) and render it as a string prefixed with the rupee symbol '₹', keeping two decimal places and appending the word 'Lakhs'.\n"
+    "- For columns listed in currency_columns (only revenue, budget, or amount fields), convert each numeric value to Lakhs (value / 100000) and render it as a string prefixed with the rupee symbol '₹', keeping two decimal places and appending the word 'Lakhs'.\n"
     "  • Example: 123456789 -> '₹1,234.57 Lakhs'.\n"
-    "  • Also include the original rupee amount in parentheses like '(₹123,456,789.00)'.\n"
     "  • Treat null/blank values as '₹0.00 Lakhs'.\n"
     "- For columns listed in percentage_columns (or whose name contains 'pct' or 'percent'), render numeric values as strings with up to two decimal places followed by '%'.\n"
-    "- Leave other fields as strings mirroring the original content.\n"
+    "- Leave every other field exactly as provided (no unit conversions).\n"
     "- Do not include analysis or commentary—only the JSON object."
 )
 
@@ -303,10 +302,7 @@ def _detect_columns(rows: List[Dict[str, Any]]) -> Tuple[List[str], List[str]]:
     sample_row = rows[0]
     for key in sample_row.keys():
         lowered = key.lower()
-        if any(
-            token in lowered
-            for token in ("amount", "revenue", "fare", "cost", "tariff", "collection", "expense", "value", "budget")
-        ):
+        if any(token in lowered for token in ("revenue", "budget", "amount")):
             currency_columns.append(key)
         if "pct" in lowered or "percent" in lowered:
             percentage_columns.append(key)
@@ -325,10 +321,10 @@ def _format_rows_locally(
             if key in currency_columns:
                 numeric = _to_float(value)
                 if numeric is None:
-                    formatted_row[key] = "₹0.00 Lakhs (₹0.00)"
+                    formatted_row[key] = "₹0.00 Lakhs"
                     continue
                 lakhs_value = numeric / 100000
-                formatted_row[key] = f"₹{lakhs_value:,.2f} Lakhs (₹{numeric:,.2f})"
+                formatted_row[key] = f"₹{lakhs_value:,.2f} Lakhs"
             elif key in percentage_columns:
                 numeric = _to_float(value)
                 if numeric is None:
