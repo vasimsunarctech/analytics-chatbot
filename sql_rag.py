@@ -915,8 +915,22 @@ def run(
     start_date = start_dt.date()
     end_date = end_dt.date()
 
+    template_id = template.get("id")
+
     start_datetime = format_datetime_ist(start_dt)
     end_datetime = format_datetime_ist(end_dt)
+
+    if template_id in {"exemption_yoy_comparison", "traffic_yoy_variance"}:
+        today_ist = datetime.now(IST).date()
+        latest_allowed_date = today_ist - timedelta(days=1)
+        if end_date > latest_allowed_date:
+            end_date = latest_allowed_date
+            end_dt = end_of_day(end_date)
+            if start_date > end_date:
+                start_date = end_date
+                start_dt = start_of_day(start_date)
+        start_datetime = format_datetime_ist(start_dt)
+        end_datetime = format_datetime_ist(end_dt)
 
     previous_start_date = shift_years(start_date, -1)
     previous_end_date = shift_years(end_date, -1)
