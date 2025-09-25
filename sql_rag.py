@@ -321,10 +321,10 @@ def _format_rows_locally(
             if key in currency_columns:
                 numeric = _to_float(value)
                 if numeric is None:
-                    formatted_row[key] = "₹0.00 Lakhs"
+                    formatted_row[key] = "₹0.00"
                     continue
                 lakhs_value = numeric / 100000
-                formatted_row[key] = f"₹{lakhs_value:,.2f} Lakhs"
+                formatted_row[key] = f"₹{lakhs_value:,.2f}"
             elif key in percentage_columns:
                 numeric = _to_float(value)
                 if numeric is None:
