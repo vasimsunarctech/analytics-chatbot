@@ -36,11 +36,12 @@
         "non performing spv",
         "non-performing spv",
         "worst performing spvs",
-        "bottom performing spvs",
+        "lowest performing spvs",
         "top 5 non performing",
         "top non performing",
         "worst performing projects",
-        "non performing assets"
+        "non performing assets",
+        "Top 5 non performing assets"
       ],
       "sql_template": "SELECT TOP ({limit})\n    project,\n    SUM(\n        CAST(\n            (COALESCE(cash, 0)\n             + COALESCE(fastag, 0)\n             + COALESCE(others, 0)\n             + COALESCE(overload, 0)\n             + COALESCE(pass_amount, 0))\n            - COALESCE(double_penalty, 0)\n        AS DECIMAL(18,2))\n    ) AS revenue,\n    SUM(CAST(budget AS DECIMAL(18,2))) AS budget,\n    ROUND(\n        (\n            (\n                SUM(\n                    CAST(\n                        (COALESCE(cash, 0)\n                         + COALESCE(fastag, 0)\n                         + COALESCE(others, 0)\n                         + COALESCE(overload, 0)\n                         + COALESCE(pass_amount, 0))\n                        - COALESCE(double_penalty, 0)\n                    AS DECIMAL(18,2))\n                )\n                - SUM(CAST(budget AS DECIMAL(18,2)))\n            )\n            / NULLIF(SUM(CAST(budget AS DECIMAL(18,2))), 0.0)\n        ) * 100.0,\n        2\n    ) AS performance_pct\nFROM dbo.ods_tmsdata_revenue\nWHERE [date] >= '{start_datetime}'\n  AND [date] <= '{end_datetime}'\nGROUP BY project\nORDER BY performance_pct ASC;",
       "defaults": {
@@ -156,6 +157,8 @@
         "planned v/s actual of revenue",
         "spv wise revenue",
         "spvs wise revenue",
+        "Budget vs actual revenue",
+        "Budget v/s actual revenue",
         "SPV wise revenue"
       ],
       "sql_template": "WITH source_data AS (\n    SELECT\n        project,\n        TRY_CONVERT(DECIMAL(18, 2), budget) AS planned_value,\n        COALESCE(TRY_CONVERT(DECIMAL(18, 2), cash), 0)\n          + COALESCE(TRY_CONVERT(DECIMAL(18, 2), fastag), 0)\n          + COALESCE(TRY_CONVERT(DECIMAL(18, 2), others), 0)\n          + COALESCE(TRY_CONVERT(DECIMAL(18, 2), overload), 0)\n          + COALESCE(TRY_CONVERT(DECIMAL(18, 2), pass_amount), 0)\n          - COALESCE(TRY_CONVERT(DECIMAL(18, 2), double_penalty), 0) AS actual_value\n    FROM dbo.ods_tmsdata_revenue\n    WHERE [date] >= '{start_datetime}'\n      AND [date] <= '{end_datetime}'\n)\nSELECT\n    project,\n    SUM(COALESCE(planned_value, 0)) AS planned_revenue,\n    SUM(actual_value) AS actual_revenue,\n    SUM(actual_value) - SUM(COALESCE(planned_value, 0)) AS variance_amount,\n    CASE\n        WHEN SUM(COALESCE(planned_value, 0)) = 0 THEN NULL\n        ELSE ROUND((SUM(actual_value) - SUM(COALESCE(planned_value, 0))) * 100.0 / NULLIF(SUM(COALESCE(planned_value, 0)), 0), 2)\n    END AS variance_pct\nFROM source_data\nGROUP BY project\nORDER BY variance_pct DESC;",
@@ -183,8 +186,15 @@
       "match_phrases": [
         "traffic variance planned vs actual",
         "planned vs actual traffic",
+        "planned v/s actual traffic",
         "traffic growth variance vs plan",
-        "traffic achievement vs plan"
+        "traffic achievement vs plan",
+        "Budget vs Traffic",
+        "Budget v/s Traffic",
+        "SPV wise Traffic",
+        "spv wise Traffic",
+        "SPVs wise Traffic",
+        "SPVs wise Traffic count"
       ],
       "sql_template": "WITH params AS (\n    SELECT\n        CAST('{start_datetime}' AS datetime) AS start_dt,\n        CAST('{end_datetime}' AS datetime) AS end_dt,\n        CAST('{start_date}' AS date) AS start_date\n),\nfiscal AS (\n    SELECT\n        start_dt,\n        end_dt,\n        CASE\n            WHEN MONTH(start_date) < 4 THEN YEAR(start_date) - 1\n            ELSE YEAR(start_date)\n        END AS fiscal_start_year\n    FROM params\n),\nbudget AS (\n    SELECT\n        CASE WHEN [ SPV ] = 'AJTL' THEN 'CSJTPL' ELSE [ SPV ] END AS project_name,\n        SUM(CAST([Traffic Budgets] AS DECIMAL(18, 6))) AS planned_traffic\n    FROM dbo.Budget_Traffic AS bt\n    CROSS JOIN fiscal\n    WHERE bt.[Year] = CONCAT('FY', RIGHT(CAST(fiscal.fiscal_start_year AS char(4)), 2), '-', RIGHT(CAST(fiscal.fiscal_start_year + 1 AS char(4)), 2))\n    GROUP BY CASE WHEN [ SPV ] = 'AJTL' THEN 'CSJTPL' ELSE [ SPV ] END\n),\nactual AS (\n    SELECT\n        dt.project_name,\n        SUM(COALESCE(dt.traffic_count, 0)) AS actual_traffic\n    FROM dbo.daily_transaction_final AS dt\n    CROSS JOIN params AS p\n    WHERE dt.transaction_date_time >= p.start_dt\n      AND dt.transaction_date_time <= p.end_dt\n    GROUP BY dt.project_name\n)\nSELECT\n    COALESCE(a.project_name, b.project_name) AS project_name,\n    ROUND(COALESCE(b.planned_traffic, 0), 2) AS planned_traffic,\n    COALESCE(a.actual_traffic, 0) AS actual_traffic,\n    COALESCE(a.actual_traffic, 0) - COALESCE(b.planned_traffic, 0) AS variance_traffic,\n    CASE\n        WHEN COALESCE(b.planned_traffic, 0) = 0 THEN NULL\n        ELSE ROUND((COALESCE(a.actual_traffic, 0) - COALESCE(b.planned_traffic, 0)) * 100.0 / NULLIF(COALESCE(b.planned_traffic, 0), 0), 2)\n    END AS variance_pct,\n    CASE\n        WHEN COALESCE(b.planned_traffic, 0) = 0 THEN NULL\n        ELSE ROUND(COALESCE(a.actual_traffic, 0) * 100.0 / NULLIF(COALESCE(b.planned_traffic, 0), 0), 2)\n    END AS achievement_pct\nFROM actual AS a\nFULL OUTER JOIN budget AS b\n    ON b.project_name = a.project_name\nORDER BY project_name;",
       "defaults": {
