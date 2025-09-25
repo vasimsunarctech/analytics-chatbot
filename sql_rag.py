@@ -69,6 +69,20 @@ ROUTER_SYSTEM_PROMPT = (
     "- Do not emit Markdown code fences, explanations, or additional text."
 )
 
+SANITIZE_SYSTEM_PROMPT = (
+    "You are a meticulous data formatter.\n"
+    "Return strictly valid JSON with a single key 'rows'.\n"
+    "Rules:\n"
+    "- Preserve the original row order and column keys.\n"
+    "- Never add new columns or drop existing ones.\n"
+    "- For columns listed in currency_columns, convert each numeric value to Lakhs (value / 100000) and render it as a string prefixed with the rupee symbol '₹', keeping two decimal places and appending the word 'Lakhs'.\n"
+    "  • Example: 123456789 -> '₹1,234.57 Lakhs'.\n"
+    "  • Treat null/blank values as '₹0.00 Lakhs'.\n"
+    "- For columns listed in percentage_columns (or whose name contains 'pct' or 'percent'), render numeric values as strings with up to two decimal places followed by '%'.\n"
+    "- Leave other fields as strings mirroring the original content.\n"
+    "- Do not include analysis or commentary—only the JSON object."
+)
+
 
 class RouterDecision(TypedDict, total=False):
     status: str
@@ -278,6 +292,57 @@ def manual_route_question(
     }
 
     return decision
+
+
+def sanitize_rows_with_llm(rows: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
+    if not rows:
+        return []
+
+    currency_columns = []
+    percentage_columns = []
+    sample_row = rows[0]
+    keys = list(sample_row.keys())
+    for key in keys:
+        lowered = key.lower()
+        if any(token in lowered for token in ("amount", "revenue", "fare", "cost", "tariff", "collection", "expense", "value", "budget")):
+            currency_columns.append(key)
+        if "pct" in lowered or "percent" in lowered:
+            percentage_columns.append(key)
+
+    payload = {
+        "rows": rows,
+        "currency_columns": currency_columns,
+        "percentage_columns": percentage_columns,
+    }
+
+    try:
+        response = client.chat.completions.create(
+            model=OLLAMA_MODEL,
+            temperature=0.0,
+            messages=[
+                {"role": "system", "content": SANITIZE_SYSTEM_PROMPT},
+                {"role": "user", "content": json.dumps(payload)},
+            ],
+        )
+        raw = response.choices[0].message.content.strip()
+        payload_text = _strip_json_block(raw)
+        data = json.loads(payload_text)
+        sanitized_rows = data.get("rows")
+        if not isinstance(sanitized_rows, list):
+            return None
+        if len(sanitized_rows) != len(rows):
+            return None
+        normalized_rows: List[Dict[str, Any]] = []
+        for original_row, sanitized_row in zip(rows, sanitized_rows):
+            if not isinstance(sanitized_row, dict):
+                return None
+            normalized_row: Dict[str, Any] = {}
+            for key in original_row.keys():
+                normalized_row[key] = sanitized_row.get(key, original_row.get(key))
+            normalized_rows.append(normalized_row)
+        return normalized_rows
+    except Exception:
+        return None
 
 
 def route_question_with_llm(
@@ -871,6 +936,8 @@ def run(
 
     append_query_log(question, validated_sql)
 
+    sanitized_rows = sanitize_rows_with_llm(rows)
+
     enriched_context = dict(time_context or {})
     limit_context = str(limit_value) if limit_value is not None else ""
     enriched_context.update(
@@ -909,6 +976,7 @@ def run(
         "sql": validated_sql,
         "notes": notes,
         "rows": rows,
+        "sanitized_rows": sanitized_rows,
         "answer": answer,
         "query_id": query_id,
         "limit": limit_value,
