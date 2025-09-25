@@ -359,11 +359,16 @@ def sanitize_rows_with_llm(rows: List[Dict[str, Any]]) -> Optional[List[Dict[str
 
     currency_columns, percentage_columns = _detect_columns(rows)
 
+    if not currency_columns and not percentage_columns:
+        return None
+
     payload = {
         "rows": rows,
         "currency_columns": list(currency_columns),
         "percentage_columns": list(percentage_columns),
     }
+
+    original_rows = rows
 
     try:
         response = client.chat.completions.create(
@@ -379,19 +384,18 @@ def sanitize_rows_with_llm(rows: List[Dict[str, Any]]) -> Optional[List[Dict[str
         data = json.loads(payload_text)
         sanitized_rows = data.get("rows")
         if isinstance(sanitized_rows, list) and len(sanitized_rows) == len(rows):
-            normalized_rows: List[Dict[str, Any]] = []
+            merged_rows: List[Dict[str, Any]] = []
             for original_row, sanitized_row in zip(rows, sanitized_rows):
                 if not isinstance(sanitized_row, dict):
-                    raise ValueError("Sanitizer returned non-dict row")
-                normalized_row: Dict[str, Any] = {}
-                for key in original_row.keys():
-                    normalized_row[key] = sanitized_row.get(key, original_row.get(key))
-                normalized_rows.append(normalized_row)
-            return normalized_rows
+                    merged_rows.append(original_row)
+                    continue
+                merged = {key: sanitized_row.get(key, original_row.get(key)) for key in original_row.keys()}
+                merged_rows.append(merged)
+            original_rows = merged_rows
     except Exception:
         pass
 
-    return _format_rows_locally(rows, currency_columns, percentage_columns)
+    return _format_rows_locally(original_rows, currency_columns, percentage_columns)
 
 
 def route_question_with_llm(

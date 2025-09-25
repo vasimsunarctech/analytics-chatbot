@@ -75,7 +75,8 @@
         "top higher exemption spvs",
         "higher exemption spvs",
         "highest exemption spvs",
-        "top exemption spvs"
+        "top exemption spvs",
+        "highest exemption"
       ],
       "sql_template": "SELECT TOP ({limit})\n    project_name,\n    SUM(CASE WHEN final_journey_type IN ('Exemption', 'Exempt - Forced Free') THEN COALESCE(traffic_count, 0) ELSE 0 END) AS exempt_traffic,\n    SUM(COALESCE(traffic_count, 0)) AS total_traffic,\n    ROUND(\n        (SUM(CASE WHEN final_journey_type IN ('Exemption', 'Exempt - Forced Free') THEN COALESCE(traffic_count, 0) ELSE 0 END) * 100.0)\n        / NULLIF(SUM(COALESCE(traffic_count, 0)) * 1.0, 0),\n        2\n    ) AS exemption_pct\nFROM dbo.daily_transaction_final\nWHERE transaction_date_time >= '{start_datetime}'\n  AND transaction_date_time <= '{end_datetime}'\nGROUP BY project_name\nHAVING SUM(COALESCE(traffic_count, 0)) > 0\nORDER BY exemption_pct DESC;",
       "defaults": {
@@ -96,7 +97,8 @@
         "top lower exemption spvs",
         "lower exemption spvs",
         "lowest exemption spvs",
-        "least exemption spvs"
+        "least exemption spvs",
+        "lowest exemption"
       ],
       "sql_template": "SELECT TOP ({limit})\n    project_name,\n    SUM(CASE WHEN final_journey_type IN ('Exemption', 'Exempt - Forced Free') THEN COALESCE(traffic_count, 0) ELSE 0 END) AS exempt_traffic,\n    SUM(COALESCE(traffic_count, 0)) AS total_traffic,\n    ROUND(\n        (SUM(CASE WHEN final_journey_type IN ('Exemption', 'Exempt - Forced Free') THEN COALESCE(traffic_count, 0) ELSE 0 END) * 100.0)\n        / NULLIF(SUM(COALESCE(traffic_count, 0)) * 1.0, 0),\n        2\n    ) AS exemption_pct\nFROM dbo.daily_transaction_final\nWHERE transaction_date_time >= '{start_datetime}'\n  AND transaction_date_time <= '{end_datetime}'\nGROUP BY project_name\nHAVING SUM(COALESCE(traffic_count, 0)) > 0\nORDER BY exemption_pct ASC;",
       "defaults": {
