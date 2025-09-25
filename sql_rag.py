@@ -77,6 +77,7 @@ SANITIZE_SYSTEM_PROMPT = (
     "- Never add new columns or drop existing ones.\n"
     "- For columns listed in currency_columns, convert each numeric value to Lakhs (value / 100000) and render it as a string prefixed with the rupee symbol '₹', keeping two decimal places and appending the word 'Lakhs'.\n"
     "  • Example: 123456789 -> '₹1,234.57 Lakhs'.\n"
+    "  • Also include the original rupee amount in parentheses like '(₹123,456,789.00)'.\n"
     "  • Treat null/blank values as '₹0.00 Lakhs'.\n"
     "- For columns listed in percentage_columns (or whose name contains 'pct' or 'percent'), render numeric values as strings with up to two decimal places followed by '%'.\n"
     "- Leave other fields as strings mirroring the original content.\n"
@@ -294,25 +295,78 @@ def manual_route_question(
     return decision
 
 
+def _detect_columns(rows: List[Dict[str, Any]]) -> Tuple[List[str], List[str]]:
+    currency_columns: List[str] = []
+    percentage_columns: List[str] = []
+    if not rows:
+        return currency_columns, percentage_columns
+    sample_row = rows[0]
+    for key in sample_row.keys():
+        lowered = key.lower()
+        if any(
+            token in lowered
+            for token in ("amount", "revenue", "fare", "cost", "tariff", "collection", "expense", "value", "budget")
+        ):
+            currency_columns.append(key)
+        if "pct" in lowered or "percent" in lowered:
+            percentage_columns.append(key)
+    return currency_columns, percentage_columns
+
+
+def _format_rows_locally(
+    rows: List[Dict[str, Any]],
+    currency_columns: Sequence[str],
+    percentage_columns: Sequence[str],
+) -> List[Dict[str, Any]]:
+    formatted_rows: List[Dict[str, Any]] = []
+    for row in rows:
+        formatted_row: Dict[str, Any] = {}
+        for key, value in row.items():
+            if key in currency_columns:
+                numeric = _to_float(value)
+                if numeric is None:
+                    formatted_row[key] = "₹0.00 Lakhs (₹0.00)"
+                    continue
+                lakhs_value = numeric / 100000
+                formatted_row[key] = f"₹{lakhs_value:,.2f} Lakhs (₹{numeric:,.2f})"
+            elif key in percentage_columns:
+                numeric = _to_float(value)
+                if numeric is None:
+                    formatted_row[key] = "0.00%"
+                else:
+                    formatted_row[key] = f"{numeric:.2f}%"
+            else:
+                formatted_row[key] = value
+        formatted_rows.append(formatted_row)
+    return formatted_rows
+
+
+def _to_float(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip()
+    if not text:
+        return None
+    text = text.replace("₹", "").replace(",", "").replace("Lakhs", "").replace("lakhs", "").replace("(", "").replace(")", "")
+    text = text.replace("INR", "").replace("%", "")
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
 def sanitize_rows_with_llm(rows: List[Dict[str, Any]]) -> Optional[List[Dict[str, Any]]]:
     if not rows:
         return []
 
-    currency_columns = []
-    percentage_columns = []
-    sample_row = rows[0]
-    keys = list(sample_row.keys())
-    for key in keys:
-        lowered = key.lower()
-        if any(token in lowered for token in ("amount", "revenue", "fare", "cost", "tariff", "collection", "expense", "value", "budget")):
-            currency_columns.append(key)
-        if "pct" in lowered or "percent" in lowered:
-            percentage_columns.append(key)
+    currency_columns, percentage_columns = _detect_columns(rows)
 
     payload = {
         "rows": rows,
-        "currency_columns": currency_columns,
-        "percentage_columns": percentage_columns,
+        "currency_columns": list(currency_columns),
+        "percentage_columns": list(percentage_columns),
     }
 
     try:
@@ -328,21 +382,20 @@ def sanitize_rows_with_llm(rows: List[Dict[str, Any]]) -> Optional[List[Dict[str
         payload_text = _strip_json_block(raw)
         data = json.loads(payload_text)
         sanitized_rows = data.get("rows")
-        if not isinstance(sanitized_rows, list):
-            return None
-        if len(sanitized_rows) != len(rows):
-            return None
-        normalized_rows: List[Dict[str, Any]] = []
-        for original_row, sanitized_row in zip(rows, sanitized_rows):
-            if not isinstance(sanitized_row, dict):
-                return None
-            normalized_row: Dict[str, Any] = {}
-            for key in original_row.keys():
-                normalized_row[key] = sanitized_row.get(key, original_row.get(key))
-            normalized_rows.append(normalized_row)
-        return normalized_rows
+        if isinstance(sanitized_rows, list) and len(sanitized_rows) == len(rows):
+            normalized_rows: List[Dict[str, Any]] = []
+            for original_row, sanitized_row in zip(rows, sanitized_rows):
+                if not isinstance(sanitized_row, dict):
+                    raise ValueError("Sanitizer returned non-dict row")
+                normalized_row: Dict[str, Any] = {}
+                for key in original_row.keys():
+                    normalized_row[key] = sanitized_row.get(key, original_row.get(key))
+                normalized_rows.append(normalized_row)
+            return normalized_rows
     except Exception:
-        return None
+        pass
+
+    return _format_rows_locally(rows, currency_columns, percentage_columns)
 
 
 def route_question_with_llm(
@@ -777,7 +830,12 @@ def generate_answer(
                     "rows": rows,
                     "time_context": time_context,
                     "conversation": conversation,
-                    "notes": "Monetary values are already expressed in Indian Rupees (Lakhs). Do not convert them to Crores or other units. Preserve the ₹ symbol as shown.",
+                    "notes": (
+                        "All monetary columns are strings already formatted in Indian Rupees (Lakhs). "
+                        "Treat the numeric portion as Lakhs; do not scale or convert them to crores, millions, or USD. "
+                        "Keep the ₹ symbol and the word 'Lakhs' exactly as provided. "
+                        "Percent columns already include '%'; restate percentages with the same sign and precision."
+                    ),
                 }
             ),
         },
