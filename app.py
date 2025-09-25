@@ -237,6 +237,15 @@ def format_for_metadata(row: Dict[str, Any]) -> Dict[str, Any]:
     return formatted
 
 
+def build_column_definitions(keys: List[str]) -> List[Dict[str, str]]:
+    columns: List[Dict[str, str]] = []
+    for key in keys:
+        raw_label = key.replace("_", " ").strip() or key
+        label = raw_label.title()
+        columns.append({"key": key, "label": label})
+    return columns
+
+
 def format_timestamp_value(value: Optional[str | datetime]) -> str:
     if not value:
         return ""
