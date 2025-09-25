@@ -11,7 +11,8 @@
         "top 5 performing",
         "top performing",
         "best performing projects",
-        "top performing projects"
+        "top performing projects",
+        "performing assets"
       ],
       "sql_template": "SELECT TOP ({limit})\n    project,\n    SUM(\n        CAST(\n            (COALESCE(cash, 0)\n             + COALESCE(fastag, 0)\n             + COALESCE(others, 0)\n             + COALESCE(overload, 0)\n             + COALESCE(pass_amount, 0))\n            - COALESCE(double_penalty, 0)\n        AS DECIMAL(18,2))\n    ) AS revenue,\n    SUM(CAST(budget AS DECIMAL(18,2))) AS budget,\n    ROUND(\n        (\n            (\n                SUM(\n                    CAST(\n                        (COALESCE(cash, 0)\n                         + COALESCE(fastag, 0)\n                         + COALESCE(others, 0)\n                         + COALESCE(overload, 0)\n                         + COALESCE(pass_amount, 0))\n                        - COALESCE(double_penalty, 0)\n                    AS DECIMAL(18,2))\n                )\n                - SUM(CAST(budget AS DECIMAL(18,2)))\n            )\n            / NULLIF(SUM(CAST(budget AS DECIMAL(18,2))), 0.0)\n        ) * 100.0,\n        2\n    ) AS performance_pct\nFROM dbo.ods_tmsdata_revenue\nWHERE [date] >= '{start_datetime}'\n  AND [date] <= '{end_datetime}'\nGROUP BY project\nORDER BY performance_pct DESC;",
       "defaults": {
@@ -38,7 +39,8 @@
         "bottom performing spvs",
         "top 5 non performing",
         "top non performing",
-        "worst performing projects"
+        "worst performing projects",
+        "non performing assets"
       ],
       "sql_template": "SELECT TOP ({limit})\n    project,\n    SUM(\n        CAST(\n            (COALESCE(cash, 0)\n             + COALESCE(fastag, 0)\n             + COALESCE(others, 0)\n             + COALESCE(overload, 0)\n             + COALESCE(pass_amount, 0))\n            - COALESCE(double_penalty, 0)\n        AS DECIMAL(18,2))\n    ) AS revenue,\n    SUM(CAST(budget AS DECIMAL(18,2))) AS budget,\n    ROUND(\n        (\n            (\n                SUM(\n                    CAST(\n                        (COALESCE(cash, 0)\n                         + COALESCE(fastag, 0)\n                         + COALESCE(others, 0)\n                         + COALESCE(overload, 0)\n                         + COALESCE(pass_amount, 0))\n                        - COALESCE(double_penalty, 0)\n                    AS DECIMAL(18,2))\n                )\n                - SUM(CAST(budget AS DECIMAL(18,2)))\n            )\n            / NULLIF(SUM(CAST(budget AS DECIMAL(18,2))), 0.0)\n        ) * 100.0,\n        2\n    ) AS performance_pct\nFROM dbo.ods_tmsdata_revenue\nWHERE [date] >= '{start_datetime}'\n  AND [date] <= '{end_datetime}'\nGROUP BY project\nORDER BY performance_pct ASC;",
       "defaults": {
